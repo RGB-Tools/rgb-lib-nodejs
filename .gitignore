@@ -1,0 +1,7 @@
+/*.tgz
+/build/
+/data/
+/docker-*-cache/
+/docker-data/
+/node_modules/
+/swig_wrap.cxx

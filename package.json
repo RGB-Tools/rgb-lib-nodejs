@@ -1,0 +1,36 @@
+{
+  "name": "rgb-lib",
+  "version": "0.3.0-alpha.6",
+  "description": "Node.js bindings for rgb-lib",
+  "main": "wrapper.js",
+  "files": [
+    "binding.gyp",
+    "rgb-lib/bindings/c-ffi/rgblib.hpp",
+    "rgb-lib/bindings/c-ffi/target/debug/librgblibcffi.so",
+    "rgblib.js",
+    "swig_wrap.cxx",
+    "wrapper.js"
+  ],
+  "scripts": {
+    "test": "echo \"No tests available\" && exit 1",
+    "prepack": "touch rgb-lib/.npmignore",
+    "postpack": "rm rgb-lib/.npmignore",
+    "build": "npm run rust-build && npm run swig-build",
+    "build-and-install": "npm run build && npm install",
+    "rust-build": "cargo build -F camel_case --manifest-path ./rgb-lib/bindings/c-ffi/Cargo.toml",
+    "swig-build": "swig -javascript -node -c++ swig.i",
+    "docker-build": "mkdir -p docker-data && docker compose up --build && docker compose down && ./copy_from_docker.sh",
+    "format": "prettier --tab-width 4 --write \"./**/*.{js,jsx}\"",
+    "regtest_start": "./rgb-lib/tests/regtest.sh prepare_bindings_examples_environment",
+    "regtest_stop": "./rgb-lib/tests/regtest.sh stop_services"
+  },
+  "author": "Zoe Faltibà <zoefaltiba@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "^7.0.0",
+    "node-gyp": "^9.4.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}
