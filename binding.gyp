@@ -7,7 +7,7 @@
       "cflags_cc!": [ "-fno-exceptions" ],
       "libraries": [
            '-lrgblibcffi',
-           '-Wl,-rpath=<(module_root_dir)/rgb-lib/bindings/c-ffi/target/debug/',
+           '-Wl,-rpath,<(module_root_dir)/rgb-lib/bindings/c-ffi/target/debug/',
        ],
       "library_dirs": [
           "<(module_root_dir)/rgb-lib/bindings/c-ffi/target/debug/",
