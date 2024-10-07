@@ -99,6 +99,7 @@ function validateTypes(values, expectedTypes) {
 exports.AssetSchema = AssetSchema = {
     Nia: "Nia",
     Cfa: "Cfa",
+    Uda: "Uda",
 };
 
 exports.BitcoinNetwork = BitcoinNetwork = {
@@ -124,6 +125,17 @@ exports.generateKeys = function generateKeys(bitcoinNetwork) {
         },
     );
     return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork));
+};
+
+exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
+    validateEnumValues(
+        { bitcoinNetwork },
+        {
+            bitcoinNetwork: BitcoinNetwork,
+        },
+    );
+    validateTypes({ mnemonic }, { mnemonic: "string" });
+    return JSON.parse(lib.rgblib_restore_keys(bitcoinNetwork, mnemonic));
 };
 
 exports.WalletData = class WalletData {
@@ -231,6 +243,61 @@ exports.Wallet = class Wallet {
 
     getAddress() {
         return lib.rgblib_get_address(this.wallet);
+    }
+
+    getBtcBalance(online, skipSync) {
+        const params = { online, skipSync };
+        const expectedTypes = {
+            online: "object",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(lib.rgblib_get_btc_balance(this.wallet, online, skipSync));
+    }
+
+    getAssetBalance(assetId) {
+        const params = { assetId };
+        const expectedTypes = {
+            assetId: "string",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(lib.rgblib_get_asset_balance(this.wallet, assetId));
+    }
+
+    listTransactions(online, skipSync) {
+        const params = { online, skipSync };
+        const expectedTypes = {
+            online: "object",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(lib.rgblib_list_transactions(this.wallet, online, skipSync));
+    }
+
+    sendBtc(online, address, amount, feeRate, skipSync) {
+        const params = {
+            online,
+            address,
+            amount,
+            feeRate,
+            skipSync,
+        };
+        const expectedTypes = {
+            online: "object",
+            address: "string",
+            amount: "u64",
+            feeRate: "f32",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_send_btc(
+            this.wallet,
+            online,
+            address,
+            amount,
+            feeRate,
+            skipSync,
+        );
     }
 
     goOnline(skipConsistencyCheck, electrumUrl) {
@@ -360,6 +427,34 @@ exports.Wallet = class Wallet {
                 this.wallet,
                 JSON.stringify(filterAssetSchemas),
             ),
+        );
+    }
+
+    listTransfers(assetId) {
+        const params = {
+            assetId,
+        };
+        const expectedTypes = {
+            assetId: "string",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(lib.rgblib_list_transfers(this.wallet, assetId));
+    }
+
+    listUnspents(online, settledOnly, skipSync) {
+        const params = {
+            online,
+            settledOnly,
+            skipSync,
+        };
+        const expectedTypes = {
+            online: "object",
+            settledOnly: "boolean",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(
+            lib.rgblib_list_unspents(this.wallet, online, settledOnly, skipSync),
         );
     }
 
