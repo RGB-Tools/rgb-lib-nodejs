@@ -59,7 +59,7 @@ function initWallet() {
     let online = wallet.goOnline(false, "tcp://localhost:50001");
     console.log("Wallet went online");
 
-    let created = wallet.createUtxos(online, false, 25, null, 1.5);
+    let created = wallet.createUtxos(online, false, 25, null, 1.5, false);
     console.log("Created " + created + " UTXOs");
 
     return [wallet, online];
@@ -110,16 +110,16 @@ function main() {
         ],
     };
 
-    let sendResult = wallet.send(online, recipientMap, false, 1.3, 1);
+    let sendResult = wallet.send(online, recipientMap, false, 1.3, 1, false);
     console.log("Sent: " + JSON.stringify(sendResult));
 
-    rcvWallet.refresh(rcvOnline, null, []);
-    wallet.refresh(online, null, []);
+    rcvWallet.refresh(rcvOnline, null, [], false);
+    wallet.refresh(online, null, [], false);
 
     mine(1);
 
-    rcvWallet.refresh(rcvOnline, null, []);
-    wallet.refresh(online, null, []);
+    rcvWallet.refresh(rcvOnline, null, [], false);
+    wallet.refresh(online, null, [], false);
 
     let rcvAssets = rcvWallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(rcvAssets));

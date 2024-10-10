@@ -187,14 +187,15 @@ exports.Wallet = class Wallet {
         );
     }
 
-    createUtxos(online, upTo, num, size, feeRate) {
-        const params = { online, upTo, num, size, feeRate };
+    createUtxos(online, upTo, num, size, feeRate, skipSync) {
+        const params = { online, upTo, num, size, feeRate, skipSync };
         const expectedTypes = {
             online: "object",
             upTo: "boolean",
             num: "u8?",
             size: "u32?",
             feeRate: "f32",
+            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return lib.rgblib_create_utxos(
@@ -204,6 +205,7 @@ exports.Wallet = class Wallet {
             JSON.stringify(num),
             JSON.stringify(size),
             feeRate,
+            skipSync,
         );
     }
 
@@ -341,16 +343,18 @@ exports.Wallet = class Wallet {
         );
     }
 
-    refresh(online, assetId, filter) {
+    refresh(online, assetId, filter, skipSync) {
         const params = {
             online,
             assetId,
             filter,
+            skipSync,
         };
         const expectedTypes = {
             online: "object",
             assetId: "string?",
             filter: "array",
+            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -359,17 +363,19 @@ exports.Wallet = class Wallet {
                 online,
                 assetId,
                 JSON.stringify(filter),
+                skipSync,
             ),
         );
     }
 
-    send(online, recipientMap, donation, feeRate, minConfirmations) {
+    send(online, recipientMap, donation, feeRate, minConfirmations, skipSync) {
         const params = {
             online,
             recipientMap,
             donation,
             feeRate,
             minConfirmations,
+            skipSync,
         };
         const expectedTypes = {
             online: "object",
@@ -377,6 +383,7 @@ exports.Wallet = class Wallet {
             donation: "boolean",
             feeRate: "f32",
             minConfirmations: "u8",
+            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -387,6 +394,7 @@ exports.Wallet = class Wallet {
                 donation,
                 feeRate,
                 minConfirmations,
+                skipSync,
             ),
         );
     }
