@@ -399,6 +399,15 @@ exports.Wallet = class Wallet {
         );
     }
 
+    sync(online) {
+        const params = { online };
+        const expectedTypes = {
+            online: "object",
+        };
+        validateTypes(params, expectedTypes);
+        lib.rgblib_sync(this.wallet, online);
+    }
+
     witnessReceive(
         assetId,
         amount,

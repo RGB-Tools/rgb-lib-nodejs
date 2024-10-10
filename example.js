@@ -124,6 +124,8 @@ function main() {
     let rcvAssets = rcvWallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(rcvAssets));
 
+    wallet.sync(online);
+
     // these avoid memory leaks, unnecessary here since the program exits
     rgblib.dropOnline(online);
     wallet.drop();

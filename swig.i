@@ -17,8 +17,12 @@
 %typemap(out) CResultString %{
     switch ($1.result) {
         case CResultValue::Ok:
-            $result = v8::String::NewFromUtf8(args.GetIsolate(), (const char*) $1.inner).ToLocalChecked();
-            delete ($1.inner);
+            if ($1.inner == nullptr) {
+                $result = v8::Null(v8::Isolate::GetCurrent());
+            } else {
+                $result = v8::String::NewFromUtf8(args.GetIsolate(), (const char*) $1.inner).ToLocalChecked();
+                delete ($1.inner);
+            }
             break;
         case CResultValue::Err:
             SWIG_V8_Raise((const char*) $1.inner);
