@@ -50,6 +50,9 @@ function initWallet() {
     let wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
     console.log("Wallet created");
 
+    let btcBalance = wallet.getBtcBalance(null, true);
+    console.log("BTC balance: " + btcBalance);
+
     let address = wallet.getAddress();
     console.log("Address: " + address);
 
@@ -58,6 +61,9 @@ function initWallet() {
     console.log("Wallet is going online...");
     let online = wallet.goOnline(false, "tcp://localhost:50001");
     console.log("Wallet went online");
+
+    btcBalance = wallet.getBtcBalance(online, false);
+    console.log("BTC balance: " + btcBalance);
 
     let created = wallet.createUtxos(online, false, 25, null, 1.5, false);
     console.log("Created " + created + " UTXOs");

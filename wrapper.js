@@ -187,6 +187,16 @@ exports.Wallet = class Wallet {
         );
     }
 
+    getBtcBalance(online, skipSync) {
+        const params = { online, skipSync };
+        const expectedTypes = {
+            online: "object?",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_get_btc_balance(this.wallet, online, skipSync);
+    }
+
     createUtxos(online, upTo, num, size, feeRate, skipSync) {
         const params = { online, upTo, num, size, feeRate, skipSync };
         const expectedTypes = {
