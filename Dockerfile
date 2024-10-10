@@ -1,4 +1,4 @@
-FROM rust:1.80.1-slim-bookworm
+FROM rust:1.81-slim-bookworm
 
 RUN apt-get update -y \
     && apt-get install -y \
