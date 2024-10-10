@@ -197,6 +197,16 @@ exports.Wallet = class Wallet {
         return lib.rgblib_get_btc_balance(this.wallet, online, skipSync);
     }
 
+    getFeeEstimation(online, blocks) {
+        const params = { online, blocks };
+        const expectedTypes = {
+            online: "object",
+            blocks: "u16",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_get_fee_estimation(this.wallet, online, blocks);
+    }
+
     createUtxos(online, upTo, num, size, feeRate, skipSync) {
         const params = { online, upTo, num, size, feeRate, skipSync };
         const expectedTypes = {

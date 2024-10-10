@@ -132,6 +132,13 @@ function main() {
 
     wallet.sync(online);
 
+    try {
+        let feeEstimation = wallet.getFeeEstimation(online, 7);
+        console.log("Fee estimation: " + JSON.stringify(feeEstimation));
+    } catch (e) {
+        console.log("Error getting fee estimation: " + e);
+    }
+
     // these avoid memory leaks, unnecessary here since the program exits
     rgblib.dropOnline(online);
     wallet.drop();
