@@ -187,58 +187,6 @@ exports.Wallet = class Wallet {
         );
     }
 
-    witnessReceive(
-        assetId,
-        amount,
-        durationSeconds,
-        transportEndpoints,
-        minConfirmations,
-    ) {
-        const params = {
-            assetId,
-            amount,
-            durationSeconds,
-            transportEndpoints,
-            minConfirmations,
-        };
-        const expectedTypes = {
-            assetId: "string?",
-            amount: "u64?",
-            durationSeconds: "u32?",
-            transportEndpoints: "array",
-            minConfirmations: "u8",
-        };
-        validateTypes(params, expectedTypes);
-        return JSON.parse(
-            lib.rgblib_blind_receive(
-                this.wallet,
-                assetId,
-                JSON.stringify(amount),
-                JSON.stringify(durationSeconds),
-                JSON.stringify(transportEndpoints),
-                minConfirmations,
-            ),
-        );
-    }
-
-    getAddress() {
-        return lib.rgblib_get_address(this.wallet);
-    }
-
-    goOnline(skipConsistencyCheck, electrumUrl) {
-        const params = { skipConsistencyCheck, electrumUrl };
-        const expectedTypes = {
-            skipConsistencyCheck: "boolean",
-            electrumUrl: "string",
-        };
-        validateTypes(params, expectedTypes);
-        return lib.rgblib_go_online(
-            this.wallet,
-            skipConsistencyCheck,
-            electrumUrl,
-        );
-    }
-
     createUtxos(online, upTo, num, size, feeRate) {
         const params = { online, upTo, num, size, feeRate };
         const expectedTypes = {
@@ -259,30 +207,21 @@ exports.Wallet = class Wallet {
         );
     }
 
-    issueAssetNIA(online, ticker, name, precision, amounts) {
-        const params = {
-            online,
-            ticker,
-            name,
-            precision,
-            amounts,
-        };
+    getAddress() {
+        return lib.rgblib_get_address(this.wallet);
+    }
+
+    goOnline(skipConsistencyCheck, electrumUrl) {
+        const params = { skipConsistencyCheck, electrumUrl };
         const expectedTypes = {
-            online: "object",
-            name: "string",
-            precision: "u8",
-            amounts: "array",
+            skipConsistencyCheck: "boolean",
+            electrumUrl: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
-            lib.rgblib_issue_asset_nia(
-                this.wallet,
-                online,
-                ticker,
-                name,
-                precision,
-                JSON.stringify(amounts),
-            ),
+        return lib.rgblib_go_online(
+            this.wallet,
+            skipConsistencyCheck,
+            electrumUrl,
         );
     }
 
@@ -313,6 +252,33 @@ exports.Wallet = class Wallet {
                 precision,
                 JSON.stringify(amounts),
                 filePath,
+            ),
+        );
+    }
+
+    issueAssetNIA(online, ticker, name, precision, amounts) {
+        const params = {
+            online,
+            ticker,
+            name,
+            precision,
+            amounts,
+        };
+        const expectedTypes = {
+            online: "object",
+            name: "string",
+            precision: "u8",
+            amounts: "array",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(
+            lib.rgblib_issue_asset_nia(
+                this.wallet,
+                online,
+                ticker,
+                name,
+                precision,
+                JSON.stringify(amounts),
             ),
         );
     }
@@ -420,6 +386,40 @@ exports.Wallet = class Wallet {
                 JSON.stringify(recipientMap),
                 donation,
                 feeRate,
+                minConfirmations,
+            ),
+        );
+    }
+
+    witnessReceive(
+        assetId,
+        amount,
+        durationSeconds,
+        transportEndpoints,
+        minConfirmations,
+    ) {
+        const params = {
+            assetId,
+            amount,
+            durationSeconds,
+            transportEndpoints,
+            minConfirmations,
+        };
+        const expectedTypes = {
+            assetId: "string?",
+            amount: "u64?",
+            durationSeconds: "u32?",
+            transportEndpoints: "array",
+            minConfirmations: "u8",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(
+            lib.rgblib_blind_receive(
+                this.wallet,
+                assetId,
+                JSON.stringify(amount),
+                JSON.stringify(durationSeconds),
+                JSON.stringify(transportEndpoints),
                 minConfirmations,
             ),
         );
