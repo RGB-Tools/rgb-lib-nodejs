@@ -485,32 +485,6 @@ exports.Wallet = class Wallet {
         );
     }
 
-    sendBtc(online, address, amount, feeRate, skipSync) {
-        const params = {
-            online,
-            address,
-            amount,
-            feeRate,
-            skipSync,
-        };
-        const expectedTypes = {
-            online: "object",
-            address: "string",
-            amount: "u64",
-            feeRate: "f32",
-            skipSync: "boolean",
-        };
-        validateTypes(params, expectedTypes);
-        return lib.rgblib_send_btc(
-            this.wallet,
-            online,
-            address,
-            amount,
-            feeRate,
-            skipSync,
-        );
-    }
-
     sync(online) {
         const params = { online };
         const expectedTypes = {
