@@ -1,6 +1,6 @@
 {
   "name": "rgb-lib",
-  "version": "0.3.0-alpha.8",
+  "version": "0.3.0-alpha.9",
   "description": "Node.js bindings for rgb-lib",
   "main": "wrapper.js",
   "files": [
