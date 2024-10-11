@@ -37,6 +37,9 @@ function initWallet() {
     let keys = rgblib.generateKeys(bitcoinNetwork);
     console.log("Keys: " + JSON.stringify(keys));
 
+    let restoredKeys = rgblib.restoreKeys(bitcoinNetwork, keys.mnemonic);
+    console.log("Restored keys: " + JSON.stringify(restoredKeys));
+
     let walletData = {
         dataDir: "./data",
         bitcoinNetwork: bitcoinNetwork,
@@ -130,7 +133,19 @@ function main() {
     let rcvAssets = rcvWallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(rcvAssets));
 
+    let rcvAssetBalance = rcvWallet.getAssetBalance(asset1.assetId);
+    console.log("Asset balance: " + JSON.stringify(rcvAssetBalance));
+
     wallet.sync(online);
+
+    let transfers = wallet.listTransfers(asset1.assetId);
+    console.log("Transfers: " + JSON.stringify(transfers));
+
+    let transactions = wallet.listTransactions(online, true);
+    console.log("Transactions: " + JSON.stringify(transactions));
+
+    let unspents = rcvWallet.listUnspents(rcvOnline, false, false);
+    console.log("Unspents: " + JSON.stringify(unspents));
 
     try {
         let feeEstimation = wallet.getFeeEstimation(online, 7);
