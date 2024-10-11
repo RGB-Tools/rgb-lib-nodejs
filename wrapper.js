@@ -199,26 +199,6 @@ exports.Wallet = class Wallet {
         );
     }
 
-    getBtcBalance(online, skipSync) {
-        const params = { online, skipSync };
-        const expectedTypes = {
-            online: "object?",
-            skipSync: "boolean",
-        };
-        validateTypes(params, expectedTypes);
-        return lib.rgblib_get_btc_balance(this.wallet, online, skipSync);
-    }
-
-    getFeeEstimation(online, blocks) {
-        const params = { online, blocks };
-        const expectedTypes = {
-            online: "object",
-            blocks: "u16",
-        };
-        validateTypes(params, expectedTypes);
-        return lib.rgblib_get_fee_estimation(this.wallet, online, blocks);
-    }
-
     createUtxos(online, upTo, num, size, feeRate, skipSync) {
         const params = { online, upTo, num, size, feeRate, skipSync };
         const expectedTypes = {
@@ -245,16 +225,6 @@ exports.Wallet = class Wallet {
         return lib.rgblib_get_address(this.wallet);
     }
 
-    getBtcBalance(online, skipSync) {
-        const params = { online, skipSync };
-        const expectedTypes = {
-            online: "object",
-            skipSync: "boolean",
-        };
-        validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_get_btc_balance(this.wallet, online, skipSync));
-    }
-
     getAssetBalance(assetId) {
         const params = { assetId };
         const expectedTypes = {
@@ -264,40 +234,24 @@ exports.Wallet = class Wallet {
         return JSON.parse(lib.rgblib_get_asset_balance(this.wallet, assetId));
     }
 
-    listTransactions(online, skipSync) {
+    getBtcBalance(online, skipSync) {
         const params = { online, skipSync };
         const expectedTypes = {
-            online: "object",
+            online: "object?",
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_list_transactions(this.wallet, online, skipSync));
+        return lib.rgblib_get_btc_balance(this.wallet, online, skipSync);
     }
 
-    sendBtc(online, address, amount, feeRate, skipSync) {
-        const params = {
-            online,
-            address,
-            amount,
-            feeRate,
-            skipSync,
-        };
+    getFeeEstimation(online, blocks) {
+        const params = { online, blocks };
         const expectedTypes = {
             online: "object",
-            address: "string",
-            amount: "u64",
-            feeRate: "f32",
-            skipSync: "boolean",
+            blocks: "u16",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_send_btc(
-            this.wallet,
-            online,
-            address,
-            amount,
-            feeRate,
-            skipSync,
-        );
+        return lib.rgblib_get_fee_estimation(this.wallet, online, blocks);
     }
 
     goOnline(skipConsistencyCheck, electrumUrl) {
@@ -430,6 +384,18 @@ exports.Wallet = class Wallet {
         );
     }
 
+    listTransactions(online, skipSync) {
+        const params = { online, skipSync };
+        const expectedTypes = {
+            online: "object",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(
+            lib.rgblib_list_transactions(this.wallet, online, skipSync),
+        );
+    }
+
     listTransfers(assetId) {
         const params = {
             assetId,
@@ -454,7 +420,12 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_list_unspents(this.wallet, online, settledOnly, skipSync),
+            lib.rgblib_list_unspents(
+                this.wallet,
+                online,
+                settledOnly,
+                skipSync,
+            ),
         );
     }
 
@@ -511,6 +482,32 @@ exports.Wallet = class Wallet {
                 minConfirmations,
                 skipSync,
             ),
+        );
+    }
+
+    sendBtc(online, address, amount, feeRate, skipSync) {
+        const params = {
+            online,
+            address,
+            amount,
+            feeRate,
+            skipSync,
+        };
+        const expectedTypes = {
+            online: "object",
+            address: "string",
+            amount: "u64",
+            feeRate: "f32",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_send_btc(
+            this.wallet,
+            online,
+            address,
+            amount,
+            feeRate,
+            skipSync,
         );
     }
 
