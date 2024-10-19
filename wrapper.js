@@ -293,7 +293,9 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_get_btc_balance(this.wallet, online, skipSync);
+        return JSON.parse(
+            lib.rgblib_get_btc_balance(this.wallet, online, skipSync),
+        );
     }
 
     getFeeEstimation(online, blocks) {
