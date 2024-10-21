@@ -32,7 +32,7 @@ function checkMemoryLeak() {
     }
 }
 
-function initWallet() {
+function initWallet(vanillaKeychain) {
     let bitcoinNetwork = rgblib.BitcoinNetwork.Regtest;
     let keys = rgblib.generateKeys(bitcoinNetwork);
     console.log("Keys: " + JSON.stringify(keys));
@@ -44,10 +44,10 @@ function initWallet() {
         dataDir: "./data",
         bitcoinNetwork: bitcoinNetwork,
         databaseType: rgblib.DatabaseType.Sqlite,
-        maxAllocationsPerUtxo: 1,
+        maxAllocationsPerUtxo: "1",
         pubkey: keys.accountXpub,
         mnemonic: keys.mnemonic,
-        vanillaKeychain: null,
+        vanillaKeychain: vanillaKeychain,
     };
     console.log("Creating wallet...");
     let wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
@@ -68,19 +68,29 @@ function initWallet() {
     btcBalance = wallet.getBtcBalance(online, false);
     console.log("BTC balance: " + btcBalance);
 
-    let created = wallet.createUtxos(online, false, 25, null, 1.5, false);
+    let created = wallet.createUtxos(online, false, "25", null, "1.0", false);
     console.log("Created " + created + " UTXOs");
 
     return [wallet, online];
 }
 
 function main() {
-    let [wallet, online] = initWallet();
+    let [wallet, online] = initWallet(null);
 
-    let asset1 = wallet.issueAssetNIA(online, "USDT", "Tether", 2, [777, 66]);
+    let asset1 = wallet.issueAssetNIA(online, "USDT", "Tether", "2", [
+        "777",
+        "66",
+    ]);
     console.log("Issued a NIA asset " + JSON.stringify(asset1));
 
-    let asset2 = wallet.issueAssetCFA(online, "Cfa", "desc", 2, [777], null);
+    let asset2 = wallet.issueAssetCFA(
+        online,
+        "Cfa",
+        "desc",
+        "2",
+        ["777"],
+        null,
+    );
     console.log("Issued a CFA asset: " + JSON.stringify(asset2));
 
     let asset3 = wallet.issueAssetUDA(
@@ -88,7 +98,7 @@ function main() {
         "TKN",
         "Token",
         null,
-        2,
+        "2",
         "README.md",
         [],
     );
@@ -103,23 +113,56 @@ function main() {
     let assets2 = wallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(assets2));
 
-    let [rcvWallet, rcvOnline] = initWallet();
+    let [rcvWallet, rcvOnline] = initWallet("3");
 
-    let receiveData = rcvWallet.blindReceive(null, 100, null, [PROXY_URL], 1);
-    console.log("Receive data: " + JSON.stringify(receiveData));
+    let receiveData1 = rcvWallet.blindReceive(
+        null,
+        "100",
+        null,
+        [PROXY_URL],
+        "1",
+    );
+    console.log("Receive data: " + JSON.stringify(receiveData1));
+
+    let receiveData2 = rcvWallet.witnessReceive(
+        null,
+        "50",
+        "60",
+        [PROXY_URL],
+        "1",
+    );
+    console.log("Receive data: " + JSON.stringify(receiveData2));
 
     let recipientMap = {
         [asset1.assetId]: [
             {
-                recipientId: receiveData.recipientId,
+                recipientId: receiveData1.recipientId,
                 witnessData: null,
-                amount: 100,
+                amount: "100",
+                transportEndpoints: [PROXY_URL],
+            },
+        ],
+        [asset2.assetId]: [
+            {
+                recipientId: receiveData2.recipientId,
+                witnessData: {
+                    amountSat: "1500",
+                    blinding: null,
+                },
+                amount: "50",
                 transportEndpoints: [PROXY_URL],
             },
         ],
     };
 
-    let sendResult = wallet.send(online, recipientMap, false, 1.3, 1, false);
+    let sendResult = wallet.send(
+        online,
+        recipientMap,
+        false,
+        "1.3",
+        "1",
+        false,
+    );
     console.log("Sent: " + JSON.stringify(sendResult));
 
     rcvWallet.refresh(rcvOnline, null, [], false);
@@ -148,11 +191,20 @@ function main() {
     console.log("Unspents: " + JSON.stringify(unspents));
 
     try {
-        let feeEstimation = wallet.getFeeEstimation(online, 7);
+        let feeEstimation = wallet.getFeeEstimation(online, "7");
         console.log("Fee estimation: " + JSON.stringify(feeEstimation));
     } catch (e) {
         console.log("Error getting fee estimation: " + e);
     }
+
+    let txid = wallet.sendBtc(
+        online,
+        rcvWallet.getAddress(),
+        "700",
+        "1.6",
+        false,
+    );
+    console.log("Sent BTC, txid: " + txid);
 
     // these avoid memory leaks, unnecessary here since the program exits
     rgblib.dropOnline(online);

@@ -27,6 +27,7 @@
   "author": "Zoe Faltibà <zoefaltiba@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "big.js": "^6.2.2",
     "node-addon-api": "^7.0.0",
     "node-gyp": "^9.4.0"
   },

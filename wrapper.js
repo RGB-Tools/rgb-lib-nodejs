@@ -1,4 +1,38 @@
+const Big = require("big.js");
 const lib = require("./rgblib");
+
+const u8Max = new Big(255);
+const u16Max = new Big(65535);
+const u32Max = new Big(4294967295);
+const u64Max = new Big(Number.MAX_SAFE_INTEGER);
+
+const i8Min = new Big(-128);
+const i8Max = new Big(127);
+const i16Min = new Big(-32768);
+const i16Max = new Big(32767);
+const i32Min = new Big(-2147483648);
+const i32Max = new Big(2147483647);
+const i64Min = new Big(Number.MIN_SAFE_INTEGER);
+const i64Max = new Big(Number.MAX_SAFE_INTEGER);
+
+const f32Min = new Big("1.17549435e-38");
+const f32Max = new Big("3.4028235e38");
+
+function isNumberType(type) {
+    const numberTypes = [
+        "u8",
+        "u16",
+        "u32",
+        "u64",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "f32",
+        "f64",
+    ];
+    return numberTypes.includes(type);
+}
 
 function isTypeSubset(actualType, expectedType) {
     const typeHierarchy = {
@@ -23,40 +57,46 @@ function isTypeSubset(actualType, expectedType) {
     );
 }
 
-function trueTypeOf(obj) {
-    if (typeof obj === "number") {
-        if (Number.isInteger(obj)) {
-            // Unsigned integers
-            if (obj >= 0 && obj <= 255) return "u8";
-            if (obj >= 0 && obj <= 65535) return "u16";
-            if (obj >= 0 && obj <= 4294967295) return "u32";
-            if (obj >= 0 && obj <= Number.MAX_SAFE_INTEGER) return "u64";
-
-            // Signed integers
-            if (obj >= -128 && obj <= 127) return "i8";
-            if (obj >= -32768 && obj <= 32767) return "i16";
-            if (obj >= -2147483648 && obj <= 2147483647) return "i32";
-            if (
-                obj >= Number.MIN_SAFE_INTEGER &&
-                obj <= Number.MAX_SAFE_INTEGER
-            )
-                return "i64";
-        } else {
-            // Floating-point numbers
-            if (
-                Math.abs(obj) <= 1.17549435e-38 ||
-                Math.abs(obj) <= 3.4028235e38
-            )
-                return "f32"; // 32-bit float
-            if (
-                Math.abs(obj) <= Number.MIN_VALUE ||
-                Math.abs(obj) <= Number.MAX_VALUE
-            )
-                return "f64"; // 64-bit float
-        }
-        return "number"; // fallback for unusual numbers
+function trueTypeOfNumber(obj) {
+    let isInteger = true;
+    if (obj.includes(".")) {
+        isInteger = false;
     }
+    let num = Big(obj);
+
+    if (isInteger) {
+        // Unsigned integers
+        if (num.gte(0) && num.lte(u8Max)) return "u8";
+        if (num.gte(0) && num.lte(u16Max)) return "u16";
+        if (num.gte(0) && num.lte(u32Max)) return "u32";
+        if (num.gte(0) && num.lte(u64Max)) return "u64";
+
+        // Signed integers
+        if (num.gte(i8Min) && num.lte(i8Max)) return "i8";
+        if (num.gte(i16Min) && num.lte(i16Max)) return "i16";
+        if (num.gte(i32Min) && num.lte(i32Max)) return "i32";
+        if (num.gte(i64Min) && num.lte(i64Max)) return "i64";
+    } else {
+        // Floating-point numbers
+        if (num.abs().gte(f32Min) && num.abs().lte(f32Max)) return "f32";
+        if (num.abs().lte(Number.MAX_VALUE)) return "f64";
+    }
+    return "number"; // Fallback for unusual numbers
+}
+
+function trueTypeOf(obj) {
     return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
+}
+
+function validateArrayElements(array, expectedElementType) {
+    array.forEach((item, index) => {
+        const actualType = trueTypeOf(item);
+        if (!isTypeSubset(actualType, expectedElementType)) {
+            throw new Error(
+                `Array element at index ${index} must be of type ${expectedElementType}, but got ${actualType}`,
+            );
+        }
+    });
 }
 
 function validateEnumValues(object, enumValidValues) {
@@ -70,24 +110,34 @@ function validateEnumValues(object, enumValidValues) {
     });
 }
 
-function validateProperties(object, requiredProperties) {
-    requiredProperties.forEach((prop) => {
-        if (!(prop in object) || object[prop] == null) {
-            throw new Error(`${prop} must be defined`);
-        }
-    });
-}
-
 function validateTypes(values, expectedTypes) {
     Object.keys(expectedTypes).forEach((key) => {
+        if (!(key in values)) {
+            throw new Error(`${key} must be defined`);
+        }
         const type = expectedTypes[key];
         const isOptional = type.endsWith("?");
-        const actualType = trueTypeOf(values[key]);
+        let val = values[key];
+        let actualType = trueTypeOf(val);
         const baseType = isOptional ? type.slice(0, -1) : type;
 
-        if (
+        if (val !== null && isNumberType(baseType)) {
+            if (actualType != "string") {
+                throw new Error("numbers must be passed as strings");
+            }
+            actualType = trueTypeOfNumber(val);
+        }
+
+        const arrayMatch = baseType.match(/^array\[(.*)\]$/);
+        if (arrayMatch) {
+            if (actualType !== "array") {
+                throw new Error(`${key} must be an array`);
+            }
+            const elementType = arrayMatch[1];
+            validateArrayElements(val, elementType);
+        } else if (
             !isTypeSubset(actualType, baseType) &&
-            !(isOptional && values[key] === null)
+            !(isOptional && val === null)
         ) {
             throw new Error(
                 `${key} type must be ${baseType}${isOptional ? " or null" : ""}`,
@@ -140,13 +190,15 @@ exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
 
 exports.WalletData = class WalletData {
     constructor(walletData) {
-        validateProperties(walletData, [
-            "dataDir",
-            "bitcoinNetwork",
-            "databaseType",
-            "pubkey",
-            "maxAllocationsPerUtxo",
-        ]);
+        const expectedTypes = {
+            dataDir: "string",
+            bitcoinNetwork: "string",
+            databaseType: "string",
+            pubkey: "string",
+            maxAllocationsPerUtxo: "u32",
+            vanillaKeychain: "u8?",
+        };
+        validateTypes(walletData, expectedTypes);
         validateEnumValues(walletData, {
             bitcoinNetwork: BitcoinNetwork,
             databaseType: DatabaseType,
@@ -183,7 +235,7 @@ exports.Wallet = class Wallet {
             assetId: "string?",
             amount: "u64?",
             durationSeconds: "u32?",
-            transportEndpoints: "array",
+            transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
         validateTypes(params, expectedTypes);
@@ -191,8 +243,8 @@ exports.Wallet = class Wallet {
             lib.rgblib_blind_receive(
                 this.wallet,
                 assetId,
-                JSON.stringify(amount),
-                JSON.stringify(durationSeconds),
+                amount,
+                durationSeconds,
                 JSON.stringify(transportEndpoints),
                 minConfirmations,
             ),
@@ -214,8 +266,8 @@ exports.Wallet = class Wallet {
             this.wallet,
             online,
             upTo,
-            JSON.stringify(num),
-            JSON.stringify(size),
+            num,
+            size,
             feeRate,
             skipSync,
         );
@@ -282,7 +334,7 @@ exports.Wallet = class Wallet {
             name: "string",
             details: "string?",
             precision: "u8",
-            amounts: "array",
+            amounts: "array[string]",
             filePath: "string?",
         };
         validateTypes(params, expectedTypes);
@@ -311,7 +363,7 @@ exports.Wallet = class Wallet {
             online: "object",
             name: "string",
             precision: "u8",
-            amounts: "array",
+            amounts: "array[string]",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -351,7 +403,7 @@ exports.Wallet = class Wallet {
             details: "string?",
             precision: "u8",
             mediaFilePath: "string?",
-            attachmentsFilePaths: "array",
+            attachmentsFilePaths: "array[string]",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -373,7 +425,7 @@ exports.Wallet = class Wallet {
             filterAssetSchemas,
         };
         const expectedTypes = {
-            filterAssetSchemas: "array",
+            filterAssetSchemas: "array[string]",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -439,7 +491,7 @@ exports.Wallet = class Wallet {
         const expectedTypes = {
             online: "object",
             assetId: "string?",
-            filter: "array",
+            filter: "array[string]",
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
@@ -485,6 +537,32 @@ exports.Wallet = class Wallet {
         );
     }
 
+    sendBtc(online, address, amount, feeRate, skipSync) {
+        const params = {
+            online,
+            address,
+            amount,
+            feeRate,
+            skipSync,
+        };
+        const expectedTypes = {
+            online: "object",
+            address: "string",
+            amount: "u64",
+            feeRate: "f32",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_send_btc(
+            this.wallet,
+            online,
+            address,
+            amount,
+            feeRate,
+            skipSync,
+        );
+    }
+
     sync(online) {
         const params = { online };
         const expectedTypes = {
@@ -512,16 +590,16 @@ exports.Wallet = class Wallet {
             assetId: "string?",
             amount: "u64?",
             durationSeconds: "u32?",
-            transportEndpoints: "array",
+            transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_blind_receive(
+            lib.rgblib_witness_receive(
                 this.wallet,
                 assetId,
-                JSON.stringify(amount),
-                JSON.stringify(durationSeconds),
+                amount,
+                durationSeconds,
                 JSON.stringify(transportEndpoints),
                 minConfirmations,
             ),
