@@ -1,4 +1,5 @@
 const { execSync } = require("child_process");
+const fs = require("fs");
 const rgblib = require("./wrapper");
 
 const PROXY_URL = "rpc://127.0.0.1:3000/json-rpc";
@@ -71,11 +72,11 @@ function initWallet(vanillaKeychain) {
     let created = wallet.createUtxos(online, false, "25", null, "1.0", false);
     console.log("Created " + created + " UTXOs");
 
-    return [wallet, online];
+    return [wallet, online, walletData];
 }
 
 function main() {
-    let [wallet, online] = initWallet(null);
+    let [wallet, online, walletData] = initWallet(null);
 
     let asset1 = wallet.issueAssetNIA(online, "USDT", "Tether", "2", [
         "777",
@@ -113,7 +114,7 @@ function main() {
     let assets2 = wallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(assets2));
 
-    let [rcvWallet, rcvOnline] = initWallet("3");
+    let [rcvWallet, rcvOnline, _rcvWalletData] = initWallet("3");
 
     let receiveData1 = rcvWallet.blindReceive(
         null,
@@ -206,11 +207,38 @@ function main() {
     );
     console.log("Sent BTC, txid: " + txid);
 
-    // these avoid memory leaks, unnecessary here since the program exits
+    // backup
+    let backupPath = "./data/backup.rgb-lib";
+    let backupPass = "password";
+    fs.unlink(backupPath, (_err) => {});
+    console.log("Performing backup...");
+    wallet.backup(backupPath, backupPass);
+
+    // drop existing wallets and avoid memory leaks
+    console.log("Dropping wallets...");
     rgblib.dropOnline(online);
     wallet.drop();
     rgblib.dropOnline(rcvOnline);
     rcvWallet.drop();
+
+    // restore
+    console.log("Restoring backup...");
+    let restoreDir = "./data/restored";
+    fs.rmdir(restoreDir, (_err) => {});
+    rgblib.restoreBackup(backupPath, backupPass, restoreDir);
+
+    // check restored wallet
+    console.log("Instantiating restored wallet...");
+    walletData.dataDir = restoreDir;
+    wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
+    online = wallet.goOnline(false, "tcp://localhost:50001");
+    assets2 = wallet.listAssets([]);
+    console.log("Assets: " + JSON.stringify(assets2));
+
+    // these avoid memory leaks, unnecessary here since the program exits
+    console.log("Dropping wallets...");
+    rgblib.dropOnline(online);
+    wallet.drop();
 }
 
 try {
