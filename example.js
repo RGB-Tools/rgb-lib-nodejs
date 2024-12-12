@@ -54,7 +54,7 @@ function initWallet(vanillaKeychain) {
     console.log("Wallet created");
 
     let btcBalance = wallet.getBtcBalance(null, true);
-    console.log("BTC balance: " + btcBalance);
+    console.log("BTC balance: " + JSON.stringify(btcBalance));
 
     let address = wallet.getAddress();
     console.log("Address: " + address);
@@ -66,7 +66,7 @@ function initWallet(vanillaKeychain) {
     console.log("Wallet went online");
 
     btcBalance = wallet.getBtcBalance(online, false);
-    console.log("BTC balance: " + btcBalance);
+    console.log("BTC balance: " + JSON.stringify(btcBalance));
 
     let created = wallet.createUtxos(online, false, "25", null, "1.0", false);
     console.log("Created " + created + " UTXOs");
