@@ -177,6 +177,17 @@ exports.generateKeys = function generateKeys(bitcoinNetwork) {
     return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork));
 };
 
+exports.restoreBackup = function (backupPath, password, targetDir) {
+    const params = { backupPath, password, targetDir };
+    const expectedTypes = {
+        backupPath: "string",
+        password: "string",
+        targetDir: "string",
+    };
+    validateTypes(params, expectedTypes);
+    lib.rgblib_restore_backup(backupPath, password, targetDir);
+};
+
 exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
     validateEnumValues(
         { bitcoinNetwork },
@@ -215,6 +226,20 @@ exports.Wallet = class Wallet {
     drop() {
         lib.free_wallet(this.wallet);
         this.wallet = null;
+    }
+
+    backup(backupPath, password) {
+        const params = { backupPath, password };
+        const expectedTypes = {
+            backupPath: "string",
+            password: "string",
+        };
+        validateTypes(params, expectedTypes);
+        lib.rgblib_backup(this.wallet, backupPath, password);
+    }
+
+    backupInfo() {
+        return JSON.parse(lib.rgblib_backup_info(this.wallet));
     }
 
     blindReceive(
