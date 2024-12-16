@@ -24,20 +24,19 @@ function sendToAddress(address, amt) {
 }
 
 /* Run this method and monitor memory usage to check there are no memory leaks */
-function checkMemoryLeak() {
+async function checkMemoryLeak() {
     for (let i = 0; i < 50; i++) {
-        let [wallet, online] = initWallet();
+        let [wallet, online] = await initWallet();
         rgblib.dropOnline(online);
         wallet.drop();
     }
 }
 
-function initWallet(vanillaKeychain) {
+async function initWallet(vanillaKeychain) {
     let bitcoinNetwork = rgblib.BitcoinNetwork.Regtest;
-    let keys = rgblib.generateKeys(bitcoinNetwork);
-    console.log("Keys: " + JSON.stringify(keys));
+    let keys = await rgblib.generateKeys(bitcoinNetwork);
 
-    let restoredKeys = rgblib.restoreKeys(bitcoinNetwork, keys.mnemonic);
+    let restoredKeys = await rgblib.restoreKeys(bitcoinNetwork, keys.mnemonic);
     console.log("Restored keys: " + JSON.stringify(restoredKeys));
 
     let walletData = {
@@ -50,40 +49,49 @@ function initWallet(vanillaKeychain) {
         vanillaKeychain: vanillaKeychain,
     };
     console.log("Creating wallet...");
-    let wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
+    let wallet = await rgblib.Wallet.createInstance(
+        new rgblib.WalletData(walletData),
+    );
     console.log("Wallet created");
 
-    let btcBalance = wallet.getBtcBalance(null, true);
+    let btcBalance = await wallet.getBtcBalance(null, true);
     console.log("BTC balance: " + JSON.stringify(btcBalance));
 
-    let address = wallet.getAddress();
+    let address = await wallet.getAddress();
     console.log("Address: " + address);
 
     sendToAddress(address, 1);
 
     console.log("Wallet is going online...");
-    let online = wallet.goOnline(false, "tcp://localhost:50001");
+    let online = await wallet.goOnline(false, "tcp://localhost:50001");
     console.log("Wallet went online");
 
-    btcBalance = wallet.getBtcBalance(online, false);
+    btcBalance = await wallet.getBtcBalance(online, false);
     console.log("BTC balance: " + JSON.stringify(btcBalance));
 
-    let created = wallet.createUtxos(online, false, "25", null, "1.0", false);
+    let created = await wallet.createUtxos(
+        online,
+        false,
+        "25",
+        null,
+        "1.0",
+        false,
+    );
     console.log("Created " + created + " UTXOs");
 
     return [wallet, online];
 }
 
-function main() {
-    let [wallet, online] = initWallet(null);
+async function main() {
+    let [wallet, online] = await initWallet(null);
 
-    let asset1 = wallet.issueAssetNIA(online, "USDT", "Tether", "2", [
+    let asset1 = await wallet.issueAssetNIA(online, "USDT", "Tether", "2", [
         "777",
         "66",
     ]);
     console.log("Issued a NIA asset " + JSON.stringify(asset1));
 
-    let asset2 = wallet.issueAssetCFA(
+    let asset2 = await wallet.issueAssetCFA(
         online,
         "Cfa",
         "desc",
@@ -93,7 +101,7 @@ function main() {
     );
     console.log("Issued a CFA asset: " + JSON.stringify(asset2));
 
-    let asset3 = wallet.issueAssetUDA(
+    let asset3 = await wallet.issueAssetUDA(
         online,
         "TKN",
         "Token",
@@ -104,18 +112,18 @@ function main() {
     );
     console.log("Issued a UDA asset: " + JSON.stringify(asset3));
 
-    let assets1 = wallet.listAssets([
+    let assets1 = await wallet.listAssets([
         rgblib.AssetSchema.Nia,
         rgblib.AssetSchema.Cfa,
     ]);
     console.log("Assets: " + JSON.stringify(assets1));
 
-    let assets2 = wallet.listAssets([]);
+    let assets2 = await wallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(assets2));
 
-    let [rcvWallet, rcvOnline] = initWallet("3");
+    let [rcvWallet, rcvOnline] = await initWallet("3");
 
-    let receiveData1 = rcvWallet.blindReceive(
+    let receiveData1 = await rcvWallet.blindReceive(
         null,
         "100",
         null,
@@ -124,7 +132,7 @@ function main() {
     );
     console.log("Receive data: " + JSON.stringify(receiveData1));
 
-    let receiveData2 = rcvWallet.witnessReceive(
+    let receiveData2 = await rcvWallet.witnessReceive(
         null,
         "50",
         "60",
@@ -155,7 +163,7 @@ function main() {
         ],
     };
 
-    let sendResult = wallet.send(
+    let sendResult = await wallet.send(
         online,
         recipientMap,
         false,
@@ -165,41 +173,41 @@ function main() {
     );
     console.log("Sent: " + JSON.stringify(sendResult));
 
-    rcvWallet.refresh(rcvOnline, null, [], false);
-    wallet.refresh(online, null, [], false);
+    await rcvWallet.refresh(rcvOnline, null, [], false);
+    await wallet.refresh(online, null, [], false);
 
     mine(1);
 
-    rcvWallet.refresh(rcvOnline, null, [], false);
-    wallet.refresh(online, null, [], false);
+    await rcvWallet.refresh(rcvOnline, null, [], false);
+    await wallet.refresh(online, null, [], false);
 
-    let rcvAssets = rcvWallet.listAssets([]);
+    let rcvAssets = await rcvWallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(rcvAssets));
 
-    let rcvAssetBalance = rcvWallet.getAssetBalance(asset1.assetId);
+    let rcvAssetBalance = await rcvWallet.getAssetBalance(asset1.assetId);
     console.log("Asset balance: " + JSON.stringify(rcvAssetBalance));
 
-    wallet.sync(online);
+    await wallet.sync(online);
 
-    let transfers = wallet.listTransfers(asset1.assetId);
+    let transfers = await wallet.listTransfers(asset1.assetId);
     console.log("Transfers: " + JSON.stringify(transfers));
 
-    let transactions = wallet.listTransactions(online, true);
+    let transactions = await wallet.listTransactions(online, true);
     console.log("Transactions: " + JSON.stringify(transactions));
 
-    let unspents = rcvWallet.listUnspents(rcvOnline, false, false);
+    let unspents = await rcvWallet.listUnspents(rcvOnline, false, false);
     console.log("Unspents: " + JSON.stringify(unspents));
 
     try {
-        let feeEstimation = wallet.getFeeEstimation(online, "7");
+        let feeEstimation = await wallet.getFeeEstimation(online, "7");
         console.log("Fee estimation: " + JSON.stringify(feeEstimation));
     } catch (e) {
         console.log("Error getting fee estimation: " + e);
     }
 
-    let txid = wallet.sendBtc(
+    let txid = await wallet.sendBtc(
         online,
-        rcvWallet.getAddress(),
+        await rcvWallet.getAddress(),
         "700",
         "1.6",
         false,

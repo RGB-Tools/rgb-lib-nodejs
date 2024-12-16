@@ -3,31 +3,35 @@
 #include "./rgb-lib/bindings/c-ffi/rgblib.hpp"
 %}
 
-%typemap(out) CResult %{
+%typemap(out) CResult (v8::Local<v8::Promise::Resolver> resolver) %{
+    resolver = v8::Promise::Resolver::New(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked();
     switch ($1.result) {
         case CResultValue::Ok:
-            $result = SWIG_NewPointerObj((new COpaqueStruct(static_cast< const COpaqueStruct& >($1.inner))), SWIGTYPE_p_COpaqueStruct, SWIG_POINTER_OWN |  0 );
+            resolver->Resolve(v8::Isolate::GetCurrent()->GetCurrentContext(), SWIG_NewPointerObj((new COpaqueStruct(static_cast< const COpaqueStruct& >($1.inner))), SWIGTYPE_p_COpaqueStruct, SWIG_POINTER_OWN |  0 )).Check();
             break;
         case CResultValue::Err:
-            SWIG_V8_Raise((const char*) $1.inner.ptr);
+            resolver->Reject(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(args.GetIsolate(), (const char*) $1.inner.ptr).ToLocalChecked()).Check();
             break;
     }
+    $result = resolver->GetPromise();
 %}
 
-%typemap(out) CResultString %{
+%typemap(out) CResultString (v8::Local<v8::Promise::Resolver> resolver) %{
+    resolver = v8::Promise::Resolver::New(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked();
     switch ($1.result) {
         case CResultValue::Ok:
             if ($1.inner == nullptr) {
-                $result = v8::Null(v8::Isolate::GetCurrent());
+                resolver->Resolve(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::Null(v8::Isolate::GetCurrent())).Check();
             } else {
-                $result = v8::String::NewFromUtf8(args.GetIsolate(), (const char*) $1.inner).ToLocalChecked();
+                resolver->Resolve(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(args.GetIsolate(), (const char*) $1.inner).ToLocalChecked()).Check();
                 delete ($1.inner);
             }
             break;
         case CResultValue::Err:
-            SWIG_V8_Raise((const char*) $1.inner);
+            resolver->Reject(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(args.GetIsolate(), (const char*) $1.inner).ToLocalChecked()).Check();
             break;
     }
+    $result = resolver->GetPromise();
 %}
 
 

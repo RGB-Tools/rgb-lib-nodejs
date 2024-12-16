@@ -167,17 +167,17 @@ exports.dropOnline = function dropOnline(online) {
     lib.free_online(online);
 };
 
-exports.generateKeys = function generateKeys(bitcoinNetwork) {
+exports.generateKeys = async function generateKeys(bitcoinNetwork) {
     validateEnumValues(
         { bitcoinNetwork },
         {
             bitcoinNetwork: BitcoinNetwork,
         },
     );
-    return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork));
+    return JSON.parse(await lib.rgblib_generate_keys(bitcoinNetwork));
 };
 
-exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
+exports.restoreKeys = async function (bitcoinNetwork, mnemonic) {
     validateEnumValues(
         { bitcoinNetwork },
         {
@@ -185,7 +185,7 @@ exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
         },
     );
     validateTypes({ mnemonic }, { mnemonic: "string" });
-    return JSON.parse(lib.rgblib_restore_keys(bitcoinNetwork, mnemonic));
+    return JSON.parse(await lib.rgblib_restore_keys(bitcoinNetwork, mnemonic));
 };
 
 exports.WalletData = class WalletData {
@@ -208,8 +208,13 @@ exports.WalletData = class WalletData {
 };
 
 exports.Wallet = class Wallet {
-    constructor(walletData) {
-        this.wallet = lib.rgblib_new_wallet(JSON.stringify(walletData));
+    constructor(wallet) {
+        this.wallet = wallet;
+    }
+
+    static async createInstance(walletData) {
+        const wallet = await lib.rgblib_new_wallet(JSON.stringify(walletData));
+        return new Wallet(wallet);
     }
 
     drop() {
@@ -217,7 +222,7 @@ exports.Wallet = class Wallet {
         this.wallet = null;
     }
 
-    blindReceive(
+    async blindReceive(
         assetId,
         amount,
         durationSeconds,
@@ -240,7 +245,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_blind_receive(
+            await lib.rgblib_blind_receive(
                 this.wallet,
                 assetId,
                 amount,
@@ -251,7 +256,7 @@ exports.Wallet = class Wallet {
         );
     }
 
-    createUtxos(online, upTo, num, size, feeRate, skipSync) {
+    async createUtxos(online, upTo, num, size, feeRate, skipSync) {
         const params = { online, upTo, num, size, feeRate, skipSync };
         const expectedTypes = {
             online: "object",
@@ -262,7 +267,7 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_create_utxos(
+        return await lib.rgblib_create_utxos(
             this.wallet,
             online,
             upTo,
@@ -273,20 +278,22 @@ exports.Wallet = class Wallet {
         );
     }
 
-    getAddress() {
-        return lib.rgblib_get_address(this.wallet);
+    async getAddress() {
+        return await lib.rgblib_get_address(this.wallet);
     }
 
-    getAssetBalance(assetId) {
+    async getAssetBalance(assetId) {
         const params = { assetId };
         const expectedTypes = {
             assetId: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_get_asset_balance(this.wallet, assetId));
+        return JSON.parse(
+            await lib.rgblib_get_asset_balance(this.wallet, assetId),
+        );
     }
 
-    getBtcBalance(online, skipSync) {
+    async getBtcBalance(online, skipSync) {
         const params = { online, skipSync };
         const expectedTypes = {
             online: "object?",
@@ -294,35 +301,35 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_get_btc_balance(this.wallet, online, skipSync),
+            await lib.rgblib_get_btc_balance(this.wallet, online, skipSync),
         );
     }
 
-    getFeeEstimation(online, blocks) {
+    async getFeeEstimation(online, blocks) {
         const params = { online, blocks };
         const expectedTypes = {
             online: "object",
             blocks: "u16",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_get_fee_estimation(this.wallet, online, blocks);
+        return await lib.rgblib_get_fee_estimation(this.wallet, online, blocks);
     }
 
-    goOnline(skipConsistencyCheck, electrumUrl) {
+    async goOnline(skipConsistencyCheck, electrumUrl) {
         const params = { skipConsistencyCheck, electrumUrl };
         const expectedTypes = {
             skipConsistencyCheck: "boolean",
             electrumUrl: "string",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_go_online(
+        return await lib.rgblib_go_online(
             this.wallet,
             skipConsistencyCheck,
             electrumUrl,
         );
     }
 
-    issueAssetCFA(online, name, details, precision, amounts, filePath) {
+    async issueAssetCFA(online, name, details, precision, amounts, filePath) {
         const params = {
             online,
             name,
@@ -341,7 +348,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_issue_asset_cfa(
+            await lib.rgblib_issue_asset_cfa(
                 this.wallet,
                 online,
                 name,
@@ -353,7 +360,7 @@ exports.Wallet = class Wallet {
         );
     }
 
-    issueAssetNIA(online, ticker, name, precision, amounts) {
+    async issueAssetNIA(online, ticker, name, precision, amounts) {
         const params = {
             online,
             ticker,
@@ -369,7 +376,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_issue_asset_nia(
+            await lib.rgblib_issue_asset_nia(
                 this.wallet,
                 online,
                 ticker,
@@ -380,7 +387,7 @@ exports.Wallet = class Wallet {
         );
     }
 
-    issueAssetUDA(
+    async issueAssetUDA(
         online,
         ticker,
         name,
@@ -409,7 +416,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_issue_asset_uda(
+            await lib.rgblib_issue_asset_uda(
                 this.wallet,
                 online,
                 ticker,
@@ -422,7 +429,7 @@ exports.Wallet = class Wallet {
         );
     }
 
-    listAssets(filterAssetSchemas) {
+    async listAssets(filterAssetSchemas) {
         const params = {
             filterAssetSchemas,
         };
@@ -431,14 +438,14 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_list_assets(
+            await lib.rgblib_list_assets(
                 this.wallet,
                 JSON.stringify(filterAssetSchemas),
             ),
         );
     }
 
-    listTransactions(online, skipSync) {
+    async listTransactions(online, skipSync) {
         const params = { online, skipSync };
         const expectedTypes = {
             online: "object",
@@ -446,11 +453,11 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_list_transactions(this.wallet, online, skipSync),
+            await lib.rgblib_list_transactions(this.wallet, online, skipSync),
         );
     }
 
-    listTransfers(assetId) {
+    async listTransfers(assetId) {
         const params = {
             assetId,
         };
@@ -458,10 +465,12 @@ exports.Wallet = class Wallet {
             assetId: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_list_transfers(this.wallet, assetId));
+        return JSON.parse(
+            await lib.rgblib_list_transfers(this.wallet, assetId),
+        );
     }
 
-    listUnspents(online, settledOnly, skipSync) {
+    async listUnspents(online, settledOnly, skipSync) {
         const params = {
             online,
             settledOnly,
@@ -474,7 +483,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_list_unspents(
+            await lib.rgblib_list_unspents(
                 this.wallet,
                 online,
                 settledOnly,
@@ -483,7 +492,7 @@ exports.Wallet = class Wallet {
         );
     }
 
-    refresh(online, assetId, filter, skipSync) {
+    async refresh(online, assetId, filter, skipSync) {
         const params = {
             online,
             assetId,
@@ -498,7 +507,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_refresh(
+            await lib.rgblib_refresh(
                 this.wallet,
                 online,
                 assetId,
@@ -508,7 +517,14 @@ exports.Wallet = class Wallet {
         );
     }
 
-    send(online, recipientMap, donation, feeRate, minConfirmations, skipSync) {
+    async send(
+        online,
+        recipientMap,
+        donation,
+        feeRate,
+        minConfirmations,
+        skipSync,
+    ) {
         const params = {
             online,
             recipientMap,
@@ -527,7 +543,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_send(
+            await lib.rgblib_send(
                 this.wallet,
                 online,
                 JSON.stringify(recipientMap),
@@ -539,7 +555,7 @@ exports.Wallet = class Wallet {
         );
     }
 
-    sendBtc(online, address, amount, feeRate, skipSync) {
+    async sendBtc(online, address, amount, feeRate, skipSync) {
         const params = {
             online,
             address,
@@ -555,7 +571,7 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_send_btc(
+        return await lib.rgblib_send_btc(
             this.wallet,
             online,
             address,
@@ -565,16 +581,16 @@ exports.Wallet = class Wallet {
         );
     }
 
-    sync(online) {
+    async sync(online) {
         const params = { online };
         const expectedTypes = {
             online: "object",
         };
         validateTypes(params, expectedTypes);
-        lib.rgblib_sync(this.wallet, online);
+        await lib.rgblib_sync(this.wallet, online);
     }
 
-    witnessReceive(
+    async witnessReceive(
         assetId,
         amount,
         durationSeconds,
@@ -597,7 +613,7 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_witness_receive(
+            await lib.rgblib_witness_receive(
                 this.wallet,
                 assetId,
                 amount,
