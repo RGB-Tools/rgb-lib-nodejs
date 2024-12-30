@@ -6,6 +6,7 @@
   "files": [
     "binding.gyp",
     "rgb-lib/bindings/c-ffi/rgblib.hpp",
+    "rgb-lib/bindings/c-ffi/target/debug/librgblibcffi.dylib",
     "rgb-lib/bindings/c-ffi/target/debug/librgblibcffi.so",
     "rgblib.js",
     "swig_wrap.cxx",
