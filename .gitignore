@@ -1,7 +1,8 @@
 /*.tgz
 /build/
 /data/
-/docker-*-cache/
 /docker-data/
 /node_modules/
+/package-lock.json
+/platforms/
 /swig_wrap.cxx

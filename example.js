@@ -1,8 +1,13 @@
 const { execSync } = require("child_process");
 const fs = require("fs");
-const rgblib = require("./wrapper");
+const os = require("os");
 
 const PROXY_URL = "rpc://127.0.0.1:3000/json-rpc";
+
+const platform = os.platform();
+const arch = os.arch();
+
+const rgblib = require(`@rgb-tools/rgb-lib-${platform}-${arch}`);
 
 function mine(numBlocks) {
     try {
@@ -156,14 +161,7 @@ function main() {
         ],
     };
 
-    let sendResult = wallet.send(
-        online,
-        recipientMap,
-        false,
-        "1.3",
-        "1",
-        false,
-    );
+    let sendResult = wallet.send(online, recipientMap, false, "2", "1", false);
     console.log("Sent: " + JSON.stringify(sendResult));
 
     rcvWallet.refresh(rcvOnline, null, [], false);

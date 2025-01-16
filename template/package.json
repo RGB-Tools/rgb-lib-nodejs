@@ -1,0 +1,39 @@
+{
+  "name": "@rgb-tools/rgb-lib-%PLATFORM%",
+  "version": "%VERSION%",
+  "description": "Node.js bindings for rgb-lib on %PLATFORM%",
+  "main": "wrapper.js",
+  "os": [
+    "%OS%"
+  ],
+  "cpu": [
+    "%CPU%"
+  ],
+  "files": [
+    "binding.gyp",
+    "rgb-lib/bindings/c-ffi/rgblib.hpp",
+    "rgb-lib/bindings/c-ffi/target/%TARGET%/release/%FILENAME%.%EXTENSION%",
+    "rgblib.js",
+    "swig_wrap.cxx",
+    "wrapper.js"
+  ],
+  "scripts": {
+    "test": "echo \"No tests available\" && exit 1",
+    "prepack": "touch rgb-lib/.npmignore",
+    "postpack": "rm rgb-lib/.npmignore",
+    "build": "npm run rust-build && npm run swig-build",
+    "rust-build": "cross build -r -F camel_case --manifest-path ./rgb-lib/bindings/c-ffi/Cargo.toml --target %TARGET%",
+    "swig-build": "swig -javascript -node -c++ swig.i"
+  },
+  "author": "Zoe Faltibà <zoefaltiba@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RGB-Tools/rgb-lib-nodejs/issues"
+  },
+  "homepage": "https://github.com/RGB-Tools/rgb-lib-nodejs#readme",
+  "dependencies": {
+    "big.js": "^6.2.2",
+    "node-addon-api": "^8.3.0",
+    "node-gyp": "^11.0.0"
+  }
+}

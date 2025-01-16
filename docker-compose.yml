@@ -1,6 +1,0 @@
-services:
-  builder:
-    image: rgb-lib-nodejs
-    build: .
-    volumes:
-      - ./docker-data:/opt/mount
