@@ -15,15 +15,10 @@ parentPort.on("message", ({ id, isClass, self, method, args }) => {
         let res;
         if (isClass) res = new self[method](...args.map(getArgValue));
         else res = self[method](...args.map(getArgValue));
-        try {
-            parentPort.postMessage({ id, res });
-        } catch (e) {
-            if (e.name === "DataCloneError") {
-                registry[id] = res;
-                parentPort.postMessage({ id, res: { _id: id } });
-            } else {
-                throw e;
-            }
+        if (isTransferable(res)) parentPort.postMessage({ id, res });
+        else {
+            registry[id] = res;
+            parentPort.postMessage({ id, res: { _id: id } });
         }
     } catch (err) {
         parentPort.postMessage({ id, err });
@@ -33,4 +28,12 @@ parentPort.postMessage(null);
 
 function getArgValue(a) {
     return registry[a?._id] || a;
+}
+function isTransferable(obj) {
+    return !(
+        obj != null &&
+        typeof obj === "object" &&
+        obj.constructor !== Object &&
+        obj.constructor !== Array
+    );
 }
