@@ -22,6 +22,7 @@ async function initWorker() {
                         worker.postMessage({ id, isClass, self, method, args });
                     });
                 },
+                terminate: () => worker.terminate(),
             };
             resolve(wrappedWorker);
         }
@@ -29,6 +30,14 @@ async function initWorker() {
     });
 
     return workerPromise;
+}
+
+async function clearResources() {
+    if (workerPromise) {
+        const worker = await workerPromise;
+        workerPromise = null;
+        await worker.terminate();
+    }
 }
 
 function proxify(worker, res) {
@@ -64,3 +73,4 @@ exports.Wallet = wrapClass("Wallet");
 exports.dropOnline = wrapMethod("dropOnline");
 exports.generateKeys = wrapMethod("generateKeys");
 exports.restoreKeys = wrapMethod("restoreKeys");
+exports.clearResources = clearResources;
