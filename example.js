@@ -74,8 +74,8 @@ function initWallet(vanillaKeychain) {
     btcBalance = wallet.getBtcBalance(online, false);
     console.log("BTC balance: " + JSON.stringify(btcBalance));
 
-    let created = wallet.createUtxos(online, false, "25", null, "1.0", false);
-    console.log("Created " + created + " UTXOs");
+    let created = wallet.createUtxos(online, false, "25", null, "1", false);
+    console.log("Created " + JSON.stringify(created) + " UTXOs");
 
     return [wallet, online, walletData];
 }
@@ -200,7 +200,7 @@ function main() {
         online,
         rcvWallet.getAddress(),
         "700",
-        "1.6",
+        "3",
         false,
     );
     console.log("Sent BTC, txid: " + txid);

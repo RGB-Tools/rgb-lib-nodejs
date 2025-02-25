@@ -283,7 +283,7 @@ exports.Wallet = class Wallet {
             upTo: "boolean",
             num: "u8?",
             size: "u32?",
-            feeRate: "f32",
+            feeRate: "u64",
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
@@ -546,7 +546,7 @@ exports.Wallet = class Wallet {
             online: "object",
             recipientMap: "object",
             donation: "boolean",
-            feeRate: "f32",
+            feeRate: "u64",
             minConfirmations: "u8",
             skipSync: "boolean",
         };
@@ -576,7 +576,7 @@ exports.Wallet = class Wallet {
             online: "object",
             address: "string",
             amount: "u64",
-            feeRate: "f32",
+            feeRate: "u64",
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
