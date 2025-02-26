@@ -13,6 +13,8 @@
     "binding.gyp",
     "rgb-lib/bindings/c-ffi/rgblib.hpp",
     "rgb-lib/bindings/c-ffi/target/%TARGET%/release/%FILENAME%.%EXTENSION%",
+    "rgb-lib/bindings/c-ffi/target/%TARGET%/release/%FILENAME%.def",
+    "rgb-lib/bindings/c-ffi/target/%TARGET%/release/%FILENAME%.lib",
     "rgblib.js",
     "swig_wrap.cxx",
     "wrapper.js"
