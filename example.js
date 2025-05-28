@@ -51,7 +51,8 @@ function initWallet(vanillaKeychain) {
         bitcoinNetwork: bitcoinNetwork,
         databaseType: rgblib.DatabaseType.Sqlite,
         maxAllocationsPerUtxo: "1",
-        pubkey: keys.accountXpub,
+        accountXpubVanilla: keys.accountXpubVanilla,
+        accountXpubColored: keys.accountXpubColored,
         mnemonic: keys.mnemonic,
         vanillaKeychain: vanillaKeychain,
     };
@@ -83,24 +84,13 @@ function initWallet(vanillaKeychain) {
 function main() {
     let [wallet, online, walletData] = initWallet(null);
 
-    let asset1 = wallet.issueAssetNIA(online, "USDT", "Tether", "2", [
-        "777",
-        "66",
-    ]);
+    let asset1 = wallet.issueAssetNIA("USDT", "Tether", "2", ["777", "66"]);
     console.log("Issued a NIA asset " + JSON.stringify(asset1));
 
-    let asset2 = wallet.issueAssetCFA(
-        online,
-        "Cfa",
-        "desc",
-        "2",
-        ["777"],
-        null,
-    );
+    let asset2 = wallet.issueAssetCFA("Cfa", "desc", "2", ["777"], null);
     console.log("Issued a CFA asset: " + JSON.stringify(asset2));
 
     let asset3 = wallet.issueAssetUDA(
-        online,
         "TKN",
         "Token",
         null,

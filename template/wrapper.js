@@ -205,7 +205,8 @@ exports.WalletData = class WalletData {
             dataDir: "string",
             bitcoinNetwork: "string",
             databaseType: "string",
-            pubkey: "string",
+            accountXpubVanilla: "string",
+            accountXpubColored: "string",
             maxAllocationsPerUtxo: "u32",
             vanillaKeychain: "u8?",
         };
@@ -347,9 +348,8 @@ exports.Wallet = class Wallet {
         );
     }
 
-    issueAssetCFA(online, name, details, precision, amounts, filePath) {
+    issueAssetCFA(name, details, precision, amounts, filePath) {
         const params = {
-            online,
             name,
             details,
             precision,
@@ -357,7 +357,6 @@ exports.Wallet = class Wallet {
             filePath,
         };
         const expectedTypes = {
-            online: "object",
             name: "string",
             details: "string?",
             precision: "u8",
@@ -368,7 +367,6 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_issue_asset_cfa(
                 this.wallet,
-                online,
                 name,
                 details,
                 precision,
@@ -378,16 +376,14 @@ exports.Wallet = class Wallet {
         );
     }
 
-    issueAssetNIA(online, ticker, name, precision, amounts) {
+    issueAssetNIA(ticker, name, precision, amounts) {
         const params = {
-            online,
             ticker,
             name,
             precision,
             amounts,
         };
         const expectedTypes = {
-            online: "object",
             name: "string",
             precision: "u8",
             amounts: "array[string]",
@@ -396,7 +392,6 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_issue_asset_nia(
                 this.wallet,
-                online,
                 ticker,
                 name,
                 precision,
@@ -406,7 +401,6 @@ exports.Wallet = class Wallet {
     }
 
     issueAssetUDA(
-        online,
         ticker,
         name,
         details,
@@ -415,7 +409,6 @@ exports.Wallet = class Wallet {
         attachmentsFilePaths,
     ) {
         const params = {
-            online,
             ticker,
             name,
             details,
@@ -424,7 +417,6 @@ exports.Wallet = class Wallet {
             attachmentsFilePaths,
         };
         const expectedTypes = {
-            online: "object",
             ticker: "string",
             name: "string",
             details: "string?",
@@ -436,7 +428,6 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_issue_asset_uda(
                 this.wallet,
-                online,
                 ticker,
                 name,
                 details,
