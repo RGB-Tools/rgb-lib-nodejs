@@ -65,7 +65,7 @@ run:
 ./platform_packages.sh build all
 ```
 
-To build the packages for a specific platforms (e.g. linux-arm64), from the
+To build the package for a specific platform (e.g. linux-arm64), from the
 project root run:
 
 ```sh
@@ -74,17 +74,17 @@ project root run:
 
 ## Install
 
+To install the native package for the current host platform, from the project
+root run:
+
+```sh
+./platform_packages.sh install
+```
+
 To install the main package, from the project root run:
 
 ```sh
 npm install
-```
-
-To install the package for the current host platform, from the project root
-run:
-
-```sh
-./platform_packages.sh install
 ```
 
 ## Run the example
@@ -117,7 +117,7 @@ npm version --no-git-tag-version <new_version>
 The postversion script will take care of updating versions for all
 `optionalDependencies`.
 
-The version for the native packages ia automatically set by the
+The version for the native packages is automatically set by the
 `platform_packages.sh` script (to the version of the main package) when setting
 them up for the build.
 
@@ -128,6 +128,13 @@ root of the project, run:
 
 ```sh
 ./platform_packages.sh publish all
+```
+
+To publish the package for a specific platform (e.g. linux-arm64), from the
+project root run:
+
+```sh
+./platform_packages.sh publish linux arm64
 ```
 
 To publish the main package to the npm registry, from the root of the project,

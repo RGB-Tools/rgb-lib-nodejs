@@ -53,7 +53,7 @@ _patch_base_image_version() {
     done
     # patch linux-image.sh for updated ubuntu
     sed -i \
-        -e 's/kversion=5.10.0-26/kversion=6.1.0-29/' \
+        -e 's/kversion=5.10.0-26/kversion=6.1.0-37/' \
         -e 's/bullseye/bookworm/' \
         -e 's/archive-key-{7.0,8,9,10,11}/archive-key-12/' \
         -e 's/release-{7,8,9,10,11}/release-12/' \
@@ -119,7 +119,12 @@ _build_package() {
     platform_dir="$PLATFORM_DIR/$platform"
     target=${TARGETS[$platform]}
     [ -z "$target" ] && _die "unsupported platform \"$os-$cpu\""
+    echo
+    echo
+    echo "================================================"
     echo "building for $platform ($target)"
+    echo "================================================"
+    echo
 
     case $os in
         linux)
@@ -179,7 +184,7 @@ _build_package() {
         -e "s/%CPU%/$cpu/" \
         "$platform_dir/README.md"
 
-    # build and package
+    # build
     pushd "$platform_dir"
     npm run build
     case $os in
@@ -238,6 +243,9 @@ _install() {
     echo "installing package for $OS-$CPU"
     platform_dir="$PLATFORM_DIR/$OS-$CPU"
     _detect_version
+    pushd "$platform_dir"
+    npm pack
+    popd
     npm install --no-save "$platform_dir/rgb-tools-rgb-lib-$OS-$CPU-$VERSION.tgz"
 }
 
