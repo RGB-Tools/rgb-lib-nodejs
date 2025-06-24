@@ -245,21 +245,21 @@ exports.Wallet = class Wallet {
 
     blindReceive(
         assetId,
-        amount,
+        assignment,
         durationSeconds,
         transportEndpoints,
         minConfirmations,
     ) {
         const params = {
             assetId,
-            amount,
+            assignment,
             durationSeconds,
             transportEndpoints,
             minConfirmations,
         };
         const expectedTypes = {
             assetId: "string?",
-            amount: "u64?",
+            assignment: "string",
             durationSeconds: "u32?",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
@@ -269,7 +269,7 @@ exports.Wallet = class Wallet {
             lib.rgblib_blind_receive(
                 this.wallet,
                 assetId,
-                amount,
+                assignment,
                 durationSeconds,
                 JSON.stringify(transportEndpoints),
                 minConfirmations,
@@ -587,7 +587,7 @@ exports.Wallet = class Wallet {
             psbt: "string",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_sign_psbt(this.wallet, psbt)
+        return lib.rgblib_sign_psbt(this.wallet, psbt);
     }
 
     sync(online) {
@@ -601,21 +601,21 @@ exports.Wallet = class Wallet {
 
     witnessReceive(
         assetId,
-        amount,
+        assignment,
         durationSeconds,
         transportEndpoints,
         minConfirmations,
     ) {
         const params = {
             assetId,
-            amount,
+            assignment,
             durationSeconds,
             transportEndpoints,
             minConfirmations,
         };
         const expectedTypes = {
             assetId: "string?",
-            amount: "u64?",
+            assignment: "string",
             durationSeconds: "u32?",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
@@ -625,7 +625,7 @@ exports.Wallet = class Wallet {
             lib.rgblib_witness_receive(
                 this.wallet,
                 assetId,
-                amount,
+                assignment,
                 durationSeconds,
                 JSON.stringify(transportEndpoints),
                 minConfirmations,

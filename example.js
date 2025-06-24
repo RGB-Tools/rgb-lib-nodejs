@@ -54,7 +54,13 @@ function initWallet(vanillaKeychain) {
         accountXpubVanilla: keys.accountXpubVanilla,
         accountXpubColored: keys.accountXpubColored,
         mnemonic: keys.mnemonic,
+        masterFingerprint: keys.masterFingerprint,
         vanillaKeychain: vanillaKeychain,
+        supportedSchemas: [
+            rgblib.AssetSchema.Cfa,
+            rgblib.AssetSchema.Nia,
+            rgblib.AssetSchema.Uda,
+        ],
     };
     console.log("Creating wallet...");
     let wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
@@ -113,7 +119,7 @@ function main() {
 
     let receiveData1 = rcvWallet.blindReceive(
         null,
-        "100",
+        '{"Fungible":100}',
         null,
         [PROXY_URL],
         "1",
@@ -122,7 +128,7 @@ function main() {
 
     let receiveData2 = rcvWallet.witnessReceive(
         null,
-        "50",
+        '{"Fungible":50}',
         "60",
         [PROXY_URL],
         "1",
@@ -134,7 +140,7 @@ function main() {
             {
                 recipientId: receiveData1.recipientId,
                 witnessData: null,
-                amount: "100",
+                assignment: { Fungible: 100 },
                 transportEndpoints: [PROXY_URL],
             },
         ],
@@ -145,7 +151,7 @@ function main() {
                     amountSat: "1500",
                     blinding: null,
                 },
-                amount: "50",
+                assignment: { Fungible: 50 },
                 transportEndpoints: [PROXY_URL],
             },
         ],
