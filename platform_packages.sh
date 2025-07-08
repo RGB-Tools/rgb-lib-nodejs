@@ -59,14 +59,11 @@ _patch_base_image_version() {
         -e 's/release-{7,8,9,10,11}/release-12/' \
         -e 's/archive_{2020,2021,2022,2023,2024}/archive_2025/' \
         docker/linux-image.sh
-    # FIXME: temporarily disabled in favor of custom wine.sh file
     # patch wine version for updated ubuntu
-    #sed -i \
-    #    -e 's/version="9.0.0.0~focal-1"/version="10.0.0.0~jammy-1"/' \
-    #    -e 's/focal/jammy/g' \
-    #    docker/wine.sh
-    # use custom wine.sh file for updated ubuntu + tmp winehq APT repo fix
-    cp ../wine.sh docker/wine.sh
+    sed -i \
+        -e 's/version="9.0.0.0~focal-1"/version="10.0.0.0~jammy-1"/' \
+        -e 's/focal/jammy/g' \
+        docker/wine.sh
 }
 
 _build_cross_image() {
