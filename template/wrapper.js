@@ -581,6 +581,15 @@ exports.Wallet = class Wallet {
         );
     }
 
+    signPsbt(psbt) {
+        const params = { psbt };
+        const expectedTypes = {
+            psbt: "string",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_sign_psbt(this.wallet, psbt)
+    }
+
     sync(online) {
         const params = { online };
         const expectedTypes = {
