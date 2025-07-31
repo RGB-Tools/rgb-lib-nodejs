@@ -49,7 +49,8 @@
     const char* file_path_opt,
     const char* media_file_path_opt,
     const char* num_opt,
-    const char* size_opt
+    const char* size_opt,
+    const char* reject_list_url_opt
 };
 
 %include "./rgb-lib/bindings/c-ffi/rgblib.hpp"
