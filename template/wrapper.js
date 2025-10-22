@@ -471,7 +471,7 @@ exports.Wallet = class Wallet {
             assetId,
         };
         const expectedTypes = {
-            assetId: "string",
+            assetId: "string?",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(lib.rgblib_list_transfers(this.wallet, assetId));
