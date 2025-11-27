@@ -155,6 +155,7 @@ exports.AssetSchema = AssetSchema = {
 exports.BitcoinNetwork = BitcoinNetwork = {
     Mainnet: "Mainnet",
     Testnet: "Testnet",
+    Testnet4: "Testnet4",
     Signet: "Signet",
     Regtest: "Regtest",
 };
