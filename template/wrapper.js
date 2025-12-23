@@ -556,6 +556,54 @@ exports.Wallet = class Wallet {
         );
     }
 
+    sendBegin(online, recipientMap, donation, feeRate, minConfirmations) {
+        const params = {
+            online,
+            recipientMap,
+            donation,
+            feeRate,
+            minConfirmations,
+        };
+        const expectedTypes = {
+            online: "object",
+            recipientMap: "object",
+            donation: "boolean",
+            feeRate: "u64",
+            minConfirmations: "u8",
+        };
+        validateTypes(params, expectedTypes);
+        return lib.rgblib_send_begin(
+            this.wallet,
+            online,
+            JSON.stringify(recipientMap),
+            donation,
+            feeRate,
+            minConfirmations,
+        );
+    }
+
+    sendEnd(online, signedPsbt, skipSync) {
+        const params = {
+            online,
+            signedPsbt,
+            skipSync,
+        };
+        const expectedTypes = {
+            online: "object",
+            signedPsbt: "string",
+            skipSync: "boolean",
+        };
+        validateTypes(params, expectedTypes);
+        return JSON.parse(
+            lib.rgblib_send_end(
+                this.wallet,
+                online,
+                signedPsbt,
+                skipSync,
+            ),
+        );
+    }
+
     sendBtc(online, address, amount, feeRate, skipSync) {
         const params = {
             online,
