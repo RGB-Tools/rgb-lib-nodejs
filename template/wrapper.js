@@ -102,7 +102,16 @@ function validateArrayElements(array, expectedElementType) {
 function validateEnumValues(object, enumValidValues) {
     Object.keys(enumValidValues).forEach((key) => {
         const allowedValues = Object.values(enumValidValues[key]);
-        if (!allowedValues.includes(object[key])) {
+        const value = object[key];
+        if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+                if (!allowedValues.includes(item)) {
+                    throw new Error(
+                        `${key}[${index}] is invalid. Expected one of: ${allowedValues.join(", ")}`,
+                    );
+                }
+            });
+        } else if (!allowedValues.includes(value)) {
             throw new Error(
                 `${key} is invalid. Expected one of: ${allowedValues.join(", ")}`,
             );
@@ -157,6 +166,7 @@ exports.BitcoinNetwork = BitcoinNetwork = {
     Testnet: "Testnet",
     Testnet4: "Testnet4",
     Signet: "Signet",
+    SignetCustom: "SignetCustom",
     Regtest: "Regtest",
 };
 
@@ -200,29 +210,45 @@ exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
     return JSON.parse(lib.rgblib_restore_keys(bitcoinNetwork, mnemonic));
 };
 
+exports.SinglesigKeys = class SinglesigKeys {
+    constructor(singlesigKeys) {
+        const expectedTypes = {
+            accountXpubVanilla: "string",
+            accountXpubColored: "string",
+            vanillaKeychain: "u8?",
+            masterFingerprint: "string",
+            mnemonic: "string?",
+        };
+        validateTypes(singlesigKeys, expectedTypes);
+        return singlesigKeys;
+    }
+};
+
 exports.WalletData = class WalletData {
     constructor(walletData) {
         const expectedTypes = {
             dataDir: "string",
             bitcoinNetwork: "string",
             databaseType: "string",
-            accountXpubVanilla: "string",
-            accountXpubColored: "string",
             maxAllocationsPerUtxo: "u32",
-            vanillaKeychain: "u8?",
+            supportedSchemas: "array[string]",
         };
         validateTypes(walletData, expectedTypes);
         validateEnumValues(walletData, {
             bitcoinNetwork: BitcoinNetwork,
             databaseType: DatabaseType,
+            supportedSchemas: AssetSchema,
         });
         return walletData;
     }
 };
 
 exports.Wallet = class Wallet {
-    constructor(walletData) {
-        this.wallet = lib.rgblib_new_wallet(JSON.stringify(walletData));
+    constructor(walletData, singlesigKeys) {
+        this.wallet = lib.rgblib_new_wallet(
+            JSON.stringify(walletData),
+            JSON.stringify(singlesigKeys),
+        );
     }
 
     drop() {
@@ -247,21 +273,21 @@ exports.Wallet = class Wallet {
     blindReceive(
         assetId,
         assignment,
-        durationSeconds,
+        expirationTimestamp,
         transportEndpoints,
         minConfirmations,
     ) {
         const params = {
             assetId,
             assignment,
-            durationSeconds,
+            expirationTimestamp,
             transportEndpoints,
             minConfirmations,
         };
         const expectedTypes = {
             assetId: "string?",
             assignment: "string",
-            durationSeconds: "u32?",
+            expirationTimestamp: "u64?",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
@@ -271,7 +297,7 @@ exports.Wallet = class Wallet {
                 this.wallet,
                 assetId,
                 assignment,
-                durationSeconds,
+                expirationTimestamp,
                 JSON.stringify(transportEndpoints),
                 minConfirmations,
             ),
@@ -540,6 +566,9 @@ exports.Wallet = class Wallet {
             filterAssetSchemas: "array[string]",
         };
         validateTypes(params, expectedTypes);
+        validateEnumValues(params, {
+            filterAssetSchemas: AssetSchema,
+        });
         return JSON.parse(
             lib.rgblib_list_assets(
                 this.wallet,
@@ -618,13 +647,22 @@ exports.Wallet = class Wallet {
         );
     }
 
-    send(online, recipientMap, donation, feeRate, minConfirmations, skipSync) {
+    send(
+        online,
+        recipientMap,
+        donation,
+        feeRate,
+        minConfirmations,
+        expirationTimestamp,
+        skipSync,
+    ) {
         const params = {
             online,
             recipientMap,
             donation,
             feeRate,
             minConfirmations,
+            expirationTimestamp,
             skipSync,
         };
         const expectedTypes = {
@@ -633,6 +671,7 @@ exports.Wallet = class Wallet {
             donation: "boolean",
             feeRate: "u64",
             minConfirmations: "u8",
+            expirationTimestamp: "u64?",
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
@@ -644,18 +683,29 @@ exports.Wallet = class Wallet {
                 donation,
                 feeRate,
                 minConfirmations,
+                expirationTimestamp,
                 skipSync,
             ),
         );
     }
 
-    sendBegin(online, recipientMap, donation, feeRate, minConfirmations) {
+    sendBegin(
+        online,
+        recipientMap,
+        donation,
+        feeRate,
+        minConfirmations,
+        expirationTimestamp,
+        dryRun,
+    ) {
         const params = {
             online,
             recipientMap,
             donation,
             feeRate,
             minConfirmations,
+            expirationTimestamp,
+            dryRun,
         };
         const expectedTypes = {
             online: "object",
@@ -663,6 +713,8 @@ exports.Wallet = class Wallet {
             donation: "boolean",
             feeRate: "u64",
             minConfirmations: "u8",
+            expirationTimestamp: "u64?",
+            dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
         return lib.rgblib_send_begin(
@@ -672,6 +724,8 @@ exports.Wallet = class Wallet {
             donation,
             feeRate,
             minConfirmations,
+            expirationTimestamp,
+            dryRun,
         );
     }
 
@@ -739,21 +793,21 @@ exports.Wallet = class Wallet {
     witnessReceive(
         assetId,
         assignment,
-        durationSeconds,
+        expirationTimestamp,
         transportEndpoints,
         minConfirmations,
     ) {
         const params = {
             assetId,
             assignment,
-            durationSeconds,
+            expirationTimestamp,
             transportEndpoints,
             minConfirmations,
         };
         const expectedTypes = {
             assetId: "string?",
             assignment: "string",
-            durationSeconds: "u32?",
+            expirationTimestamp: "u64?",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
@@ -763,7 +817,7 @@ exports.Wallet = class Wallet {
                 this.wallet,
                 assetId,
                 assignment,
-                durationSeconds,
+                expirationTimestamp,
                 JSON.stringify(transportEndpoints),
                 minConfirmations,
             ),

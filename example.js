@@ -32,7 +32,7 @@ function sendToAddress(address, amt) {
 /* Run this method and monitor memory usage to check there are no memory leaks */
 function checkMemoryLeak() {
     for (let i = 0; i < 50; i++) {
-        let [wallet, online] = initWallet();
+        let [wallet, online] = initWallet(null);
         rgblib.dropOnline(online);
         wallet.drop();
     }
@@ -46,16 +46,18 @@ function initWallet(vanillaKeychain) {
     let restoredKeys = rgblib.restoreKeys(bitcoinNetwork, keys.mnemonic);
     console.log("Restored keys: " + JSON.stringify(restoredKeys));
 
+    let singlesigKeys = {
+        accountXpubVanilla: keys.accountXpubVanilla,
+        accountXpubColored: keys.accountXpubColored,
+        vanillaKeychain: vanillaKeychain,
+        masterFingerprint: keys.masterFingerprint,
+        mnemonic: keys.mnemonic,
+    };
     let walletData = {
         dataDir: "./data",
         bitcoinNetwork: bitcoinNetwork,
         databaseType: rgblib.DatabaseType.Sqlite,
         maxAllocationsPerUtxo: "1",
-        accountXpubVanilla: keys.accountXpubVanilla,
-        accountXpubColored: keys.accountXpubColored,
-        mnemonic: keys.mnemonic,
-        masterFingerprint: keys.masterFingerprint,
-        vanillaKeychain: vanillaKeychain,
         supportedSchemas: [
             rgblib.AssetSchema.Cfa,
             rgblib.AssetSchema.Nia,
@@ -63,7 +65,10 @@ function initWallet(vanillaKeychain) {
         ],
     };
     console.log("Creating wallet...");
-    let wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
+    let wallet = new rgblib.Wallet(
+        new rgblib.WalletData(walletData),
+        new rgblib.SinglesigKeys(singlesigKeys),
+    );
     console.log("Wallet created");
 
     let btcBalance = wallet.getBtcBalance(null, true);
@@ -84,11 +89,11 @@ function initWallet(vanillaKeychain) {
     let created = wallet.createUtxos(online, false, "25", null, "1", false);
     console.log("Created " + JSON.stringify(created) + " UTXOs");
 
-    return [wallet, online, walletData];
+    return [wallet, online, walletData, singlesigKeys];
 }
 
 function main() {
-    let [wallet, online, walletData] = initWallet(null);
+    let [wallet, online, walletData, singlesigKeys] = initWallet(null);
 
     let asset1 = wallet.issueAssetNIA("USDT", "Tether", "2", ["777", "66"]);
     console.log("Issued a NIA asset " + JSON.stringify(asset1));
@@ -126,10 +131,11 @@ function main() {
     );
     console.log("Receive data: " + JSON.stringify(receiveData1));
 
+    const expirationTimestamp = Math.floor(Date.now() / 1000) + 60;
     let receiveData2 = rcvWallet.witnessReceive(
         null,
         '{"Fungible":50}',
-        "60",
+        expirationTimestamp.toString(),
         [PROXY_URL],
         "1",
     );
@@ -157,7 +163,15 @@ function main() {
         ],
     };
 
-    let sendResult = wallet.send(online, recipientMap, false, "2", "1", false);
+    let sendResult = wallet.send(
+        online,
+        recipientMap,
+        false,
+        "2",
+        "1",
+        null,
+        false,
+    );
     console.log("Sent: " + JSON.stringify(sendResult));
 
     rcvWallet.refresh(rcvOnline, null, [], false);
@@ -224,7 +238,10 @@ function main() {
     // check restored wallet
     console.log("Instantiating restored wallet...");
     walletData.dataDir = restoreDir;
-    wallet = new rgblib.Wallet(new rgblib.WalletData(walletData));
+    wallet = new rgblib.Wallet(
+        new rgblib.WalletData(walletData),
+        new rgblib.SinglesigKeys(singlesigKeys),
+    );
     online = wallet.goOnline(false, "tcp://localhost:50001");
     assets2 = wallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(assets2));

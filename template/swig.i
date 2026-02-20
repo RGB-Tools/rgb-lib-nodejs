@@ -46,7 +46,7 @@
     const char* asset_id_opt,
     const char* batch_transfer_idx_opt,
     const char* details_opt,
-    const char* duration_seconds_opt,
+    const char* expiration_timestamp_opt,
     const char* file_path_opt,
     const char* media_file_path_opt,
     const char* num_opt,
