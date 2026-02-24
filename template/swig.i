@@ -44,6 +44,7 @@
 
 %apply optional_string {
     const char* asset_id_opt,
+    const char* batch_transfer_idx_opt,
     const char* details_opt,
     const char* duration_seconds_opt,
     const char* file_path_opt,
