@@ -53,7 +53,7 @@ _patch_base_image_version() {
     done
     # patch linux-image.sh for updated ubuntu
     sed -i \
-        -e 's/kversion=5.10.0-26/kversion=6.1.0-37/' \
+        -e 's/kversion=5.10.0-26/kversion=6.1.0-39/' \
         -e 's/bullseye/bookworm/' \
         -e 's/archive-key-{7.0,8,9,10,11}/archive-key-12/' \
         -e 's/release-{7,8,9,10,11}/release-12/' \
