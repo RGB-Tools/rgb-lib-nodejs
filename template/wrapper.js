@@ -188,6 +188,11 @@ exports.generateKeys = function generateKeys(bitcoinNetwork) {
     return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork));
 };
 
+exports.invoiceData = function invoiceData(invoiceString) {
+    validateTypes({ invoiceString }, { invoiceString: "string" });
+    return JSON.parse(lib.rgblib_invoice_data(invoiceString));
+};
+
 exports.restoreBackup = function (backupPath, password, targetDir) {
     const params = { backupPath, password, targetDir };
     const expectedTypes = {
