@@ -174,10 +174,6 @@ exports.DatabaseType = DatabaseType = {
     Sqlite: "Sqlite",
 };
 
-exports.dropOnline = function dropOnline(online) {
-    lib.free_online(online);
-};
-
 exports.generateKeys = function generateKeys(bitcoinNetwork) {
     validateEnumValues(
         { bitcoinNetwork },

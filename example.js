@@ -33,7 +33,6 @@ function sendToAddress(address, amt) {
 function checkMemoryLeak() {
     for (let i = 0; i < 50; i++) {
         let [wallet, online] = initWallet(null);
-        rgblib.dropOnline(online);
         wallet.drop();
     }
 }
@@ -224,9 +223,7 @@ function main() {
 
     // drop existing wallets and avoid memory leaks
     console.log("Dropping wallets...");
-    rgblib.dropOnline(online);
     wallet.drop();
-    rgblib.dropOnline(rcvOnline);
     rcvWallet.drop();
 
     // restore
@@ -248,7 +245,6 @@ function main() {
 
     // these avoid memory leaks, unnecessary here since the program exits
     console.log("Dropping wallets...");
-    rgblib.dropOnline(online);
     wallet.drop();
 }
 
