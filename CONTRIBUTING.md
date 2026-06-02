@@ -123,6 +123,13 @@ them up for the build.
 
 ## Publish
 
+Publishing does not build the packages, so make sure you have already built
+the platform-specific package(s) you want to publish (see [Build](#build)).
+
+You also need to be authenticated with the npm registry. If a publish command
+fails with a 404 error, it most likely means you are not logged in: run
+`npm login` and then retry.
+
 To publish all the platform-specific packages to the npm registry, from the
 root of the project, run:
 
