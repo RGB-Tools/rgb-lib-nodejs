@@ -39,10 +39,15 @@ function checkMemoryLeak() {
 
 function initWallet(vanillaKeychain) {
     let bitcoinNetwork = rgblib.BitcoinNetwork.Regtest;
-    let keys = rgblib.generateKeys(bitcoinNetwork);
+    let witnessVersion = rgblib.WitnessVersion.Taproot;
+    let keys = rgblib.generateKeys(bitcoinNetwork, witnessVersion);
     console.log("Keys: " + JSON.stringify(keys));
 
-    let restoredKeys = rgblib.restoreKeys(bitcoinNetwork, keys.mnemonic);
+    let restoredKeys = rgblib.restoreKeys(
+        bitcoinNetwork,
+        keys.mnemonic,
+        witnessVersion,
+    );
     console.log("Restored keys: " + JSON.stringify(restoredKeys));
 
     let singlesigKeys = {
@@ -79,7 +84,11 @@ function initWallet(vanillaKeychain) {
     sendToAddress(address, 1);
 
     console.log("Wallet is going online...");
-    let online = wallet.goOnline(false, "tcp://localhost:50001");
+    let online = wallet.goOnline({
+        indexerUrl: "tcp://localhost:50001",
+        skipConsistencyCheck: false,
+        vanillaSyncLookback: 20,
+    });
     console.log("Wallet went online");
 
     btcBalance = wallet.getBtcBalance(online, false);
@@ -162,15 +171,7 @@ function main() {
         ],
     };
 
-    let sendResult = wallet.send(
-        online,
-        recipientMap,
-        false,
-        "2",
-        "1",
-        null,
-        false,
-    );
+    let sendResult = wallet.send(online, recipientMap, false, "2", "1", null);
     console.log("Sent: " + JSON.stringify(sendResult));
 
     rcvWallet.refresh(rcvOnline, null, [], false);
@@ -187,7 +188,15 @@ function main() {
     let rcvAssetBalance = rcvWallet.getAssetBalance(asset1.assetId);
     console.log("Asset balance: " + JSON.stringify(rcvAssetBalance));
 
-    wallet.sync(online);
+    wallet.sync(online, {
+        keychain: rgblib.SyncKeychain.Colored,
+        strategy: rgblib.SyncStrategy.FullSync,
+    });
+
+    wallet.sync(online, {
+        keychain: { Vanilla: { lookback: 20 } },
+        strategy: rgblib.SyncStrategy.FastSync,
+    });
 
     let transfers = wallet.listTransfers(asset1.assetId);
     console.log("Transfers: " + JSON.stringify(transfers));
@@ -239,7 +248,11 @@ function main() {
         new rgblib.WalletData(walletData),
         new rgblib.SinglesigKeys(singlesigKeys),
     );
-    online = wallet.goOnline(false, "tcp://localhost:50001");
+    online = wallet.goOnline({
+        indexerUrl: "tcp://localhost:50001",
+        skipConsistencyCheck: false,
+        vanillaSyncLookback: 20,
+    });
     assets2 = wallet.listAssets([]);
     console.log("Assets: " + JSON.stringify(assets2));
 

@@ -155,6 +155,23 @@ function validateTypes(values, expectedTypes) {
     });
 }
 
+// Online.id is a u64 (nanosecond timestamp) and exceeds JS Number.MAX_SAFE_INTEGER.
+function parseOnline(raw) {
+    const idMatch = raw.match(/"id"\s*:\s*(\d+)/);
+    if (!idMatch) {
+        throw new Error("Invalid online object");
+    }
+    return { id: idMatch[1] };
+}
+
+function serializeOnline(online) {
+    if (online === null || online === undefined) {
+        return null;
+    }
+    const id = typeof online.id === "string" ? online.id : String(online.id);
+    return `{"id":${id}}`;
+}
+
 exports.AssetSchema = AssetSchema = {
     Nia: "Nia",
     Cfa: "Cfa",
@@ -174,14 +191,30 @@ exports.DatabaseType = DatabaseType = {
     Sqlite: "Sqlite",
 };
 
-exports.generateKeys = function generateKeys(bitcoinNetwork) {
+exports.SyncKeychain = SyncKeychain = {
+    Colored: "Colored",
+};
+
+exports.SyncStrategy = SyncStrategy = {
+    FullScan: "FullScan",
+    FullSync: "FullSync",
+    FastSync: "FastSync",
+};
+
+exports.WitnessVersion = WitnessVersion = {
+    SegWitV0: "SegWitV0",
+    Taproot: "Taproot",
+};
+
+exports.generateKeys = function generateKeys(bitcoinNetwork, witnessVersion) {
     validateEnumValues(
-        { bitcoinNetwork },
+        { bitcoinNetwork, witnessVersion },
         {
             bitcoinNetwork: BitcoinNetwork,
+            witnessVersion: WitnessVersion,
         },
     );
-    return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork));
+    return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork, witnessVersion));
 };
 
 exports.invoiceData = function invoiceData(invoiceString) {
@@ -200,15 +233,18 @@ exports.restoreBackup = function (backupPath, password, targetDir) {
     lib.rgblib_restore_backup(backupPath, password, targetDir);
 };
 
-exports.restoreKeys = function (bitcoinNetwork, mnemonic) {
+exports.restoreKeys = function (bitcoinNetwork, mnemonic, witnessVersion) {
     validateEnumValues(
-        { bitcoinNetwork },
+        { bitcoinNetwork, witnessVersion },
         {
             bitcoinNetwork: BitcoinNetwork,
+            witnessVersion: WitnessVersion,
         },
     );
     validateTypes({ mnemonic }, { mnemonic: "string" });
-    return JSON.parse(lib.rgblib_restore_keys(bitcoinNetwork, mnemonic));
+    return JSON.parse(
+        lib.rgblib_restore_keys(bitcoinNetwork, mnemonic, witnessVersion),
+    );
 };
 
 exports.SinglesigKeys = class SinglesigKeys {
@@ -318,7 +354,7 @@ exports.Wallet = class Wallet {
         validateTypes(params, expectedTypes);
         return lib.rgblib_create_utxos(
             this.wallet,
-            online,
+            serializeOnline(online),
             upTo,
             num,
             size,
@@ -340,7 +376,7 @@ exports.Wallet = class Wallet {
         validateTypes(params, expectedTypes);
         return lib.rgblib_create_utxos_begin(
             this.wallet,
-            online,
+            serializeOnline(online),
             upTo,
             num,
             size,
@@ -360,7 +396,7 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_create_utxos_end(
                 this.wallet,
-                online,
+                serializeOnline(online),
                 signedPsbt,
                 skipSync,
             ),
@@ -403,7 +439,7 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_fail_transfers(
                 this.wallet,
-                online,
+                serializeOnline(online),
                 batchTransferIdx,
                 noAssetOnly,
                 skipSync,
@@ -441,7 +477,11 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_get_btc_balance(this.wallet, online, skipSync),
+            lib.rgblib_get_btc_balance(
+                this.wallet,
+                serializeOnline(online),
+                skipSync,
+            ),
         );
     }
 
@@ -452,20 +492,25 @@ exports.Wallet = class Wallet {
             blocks: "u16",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_get_fee_estimation(this.wallet, online, blocks);
+        return lib.rgblib_get_fee_estimation(
+            this.wallet,
+            serializeOnline(online),
+            blocks,
+        );
     }
 
-    goOnline(skipConsistencyCheck, electrumUrl) {
-        const params = { skipConsistencyCheck, electrumUrl };
+    goOnline(onlineOptions) {
+        const params = { onlineOptions };
         const expectedTypes = {
-            skipConsistencyCheck: "boolean",
-            electrumUrl: "string",
+            onlineOptions: "object",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_go_online(
-            this.wallet,
-            skipConsistencyCheck,
-            electrumUrl,
+        validateTypes(onlineOptions, {
+            indexerUrl: "string",
+            skipConsistencyCheck: "boolean",
+        });
+        return parseOnline(
+            lib.rgblib_go_online(this.wallet, JSON.stringify(onlineOptions)),
         );
     }
 
@@ -586,7 +631,11 @@ exports.Wallet = class Wallet {
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_list_transactions(this.wallet, online, skipSync),
+            lib.rgblib_list_transactions(
+                this.wallet,
+                serializeOnline(online),
+                skipSync,
+            ),
         );
     }
 
@@ -616,7 +665,7 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_list_unspents(
                 this.wallet,
-                online,
+                serializeOnline(online),
                 settledOnly,
                 skipSync,
             ),
@@ -640,7 +689,7 @@ exports.Wallet = class Wallet {
         return JSON.parse(
             lib.rgblib_refresh(
                 this.wallet,
-                online,
+                serializeOnline(online),
                 assetId,
                 JSON.stringify(filter),
                 skipSync,
@@ -655,7 +704,6 @@ exports.Wallet = class Wallet {
         feeRate,
         minConfirmations,
         expirationTimestamp,
-        skipSync,
     ) {
         const params = {
             online,
@@ -664,7 +712,6 @@ exports.Wallet = class Wallet {
             feeRate,
             minConfirmations,
             expirationTimestamp,
-            skipSync,
         };
         const expectedTypes = {
             online: "object",
@@ -673,19 +720,17 @@ exports.Wallet = class Wallet {
             feeRate: "u64",
             minConfirmations: "u8",
             expirationTimestamp: "u64?",
-            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
             lib.rgblib_send(
                 this.wallet,
-                online,
+                serializeOnline(online),
                 JSON.stringify(recipientMap),
                 donation,
                 feeRate,
                 minConfirmations,
                 expirationTimestamp,
-                skipSync,
             ),
         );
     }
@@ -720,7 +765,7 @@ exports.Wallet = class Wallet {
         validateTypes(params, expectedTypes);
         return lib.rgblib_send_begin(
             this.wallet,
-            online,
+            serializeOnline(online),
             JSON.stringify(recipientMap),
             donation,
             feeRate,
@@ -748,7 +793,7 @@ exports.Wallet = class Wallet {
         validateTypes(params, expectedTypes);
         return lib.rgblib_send_btc(
             this.wallet,
-            online,
+            serializeOnline(online),
             address,
             amount,
             feeRate,
@@ -756,20 +801,22 @@ exports.Wallet = class Wallet {
         );
     }
 
-    sendEnd(online, signedPsbt, skipSync) {
+    sendEnd(online, signedPsbt) {
         const params = {
             online,
             signedPsbt,
-            skipSync,
         };
         const expectedTypes = {
             online: "object",
             signedPsbt: "string",
-            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
-            lib.rgblib_send_end(this.wallet, online, signedPsbt, skipSync),
+            lib.rgblib_send_end(
+                this.wallet,
+                serializeOnline(online),
+                signedPsbt,
+            ),
         );
     }
 
@@ -782,13 +829,21 @@ exports.Wallet = class Wallet {
         return lib.rgblib_sign_psbt(this.wallet, psbt);
     }
 
-    sync(online) {
-        const params = { online };
+    sync(online, options) {
+        const params = { online, options };
         const expectedTypes = {
             online: "object",
+            options: "object",
         };
         validateTypes(params, expectedTypes);
-        lib.rgblib_sync(this.wallet, online);
+        validateEnumValues(options, {
+            strategy: SyncStrategy,
+        });
+        lib.rgblib_sync(
+            this.wallet,
+            serializeOnline(online),
+            JSON.stringify(options),
+        );
     }
 
     witnessReceive(

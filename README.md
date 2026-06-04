@@ -36,7 +36,10 @@ const rgblib = require("rgb-lib");
 Then call its exported functions. As an example:
 
 ```javascript
-let keys = rgblib.generateKeys(rgblib.BitcoinNetwork.Regtest);
+let keys = rgblib.generateKeys(
+    rgblib.BitcoinNetwork.Regtest,
+    rgblib.WitnessVersion.Taproot,
+);
 console.log(keys);
 ```
 

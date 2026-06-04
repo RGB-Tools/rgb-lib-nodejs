@@ -44,6 +44,7 @@ General:
 - [Docker]
 - [cargo]
 - [cross] (`cargo install cross`)
+- [Swig]
 
 Windows only:
 
