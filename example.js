@@ -130,16 +130,16 @@ function main() {
 
     let [rcvWallet, rcvOnline, _rcvWalletData] = initWallet("3");
 
+    const expirationTimestamp = Math.floor(Date.now() / 1000) + 60;
     let receiveData1 = rcvWallet.blindReceive(
         null,
         '{"Fungible":100}',
-        null,
+        expirationTimestamp.toString(),
         [PROXY_URL],
         "1",
     );
     console.log("Receive data: " + JSON.stringify(receiveData1));
 
-    const expirationTimestamp = Math.floor(Date.now() / 1000) + 60;
     let receiveData2 = rcvWallet.witnessReceive(
         null,
         '{"Fungible":50}',
@@ -171,7 +171,14 @@ function main() {
         ],
     };
 
-    let sendResult = wallet.send(online, recipientMap, false, "2", "1", null);
+    let sendResult = wallet.send(
+        online,
+        recipientMap,
+        false,
+        "2",
+        "1",
+        expirationTimestamp.toString(),
+    );
     console.log("Sent: " + JSON.stringify(sendResult));
 
     rcvWallet.refresh(rcvOnline, null, [], false);

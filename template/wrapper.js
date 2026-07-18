@@ -324,7 +324,7 @@ exports.Wallet = class Wallet {
         const expectedTypes = {
             assetId: "string?",
             assignment: "string",
-            expirationTimestamp: "u64?",
+            expirationTimestamp: "u64",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
@@ -719,7 +719,7 @@ exports.Wallet = class Wallet {
             donation: "boolean",
             feeRate: "u64",
             minConfirmations: "u8",
-            expirationTimestamp: "u64?",
+            expirationTimestamp: "u64",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -759,7 +759,7 @@ exports.Wallet = class Wallet {
             donation: "boolean",
             feeRate: "u64",
             minConfirmations: "u8",
-            expirationTimestamp: "u64?",
+            expirationTimestamp: "u64",
             dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
@@ -863,7 +863,7 @@ exports.Wallet = class Wallet {
         const expectedTypes = {
             assetId: "string?",
             assignment: "string",
-            expirationTimestamp: "u64?",
+            expirationTimestamp: "u64",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
