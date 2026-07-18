@@ -149,8 +149,18 @@ To publish the main package to the npm registry, from the root of the project,
 run:
 
 ```sh
-npm publish
+npm publish --access public
 ```
+
+For prerelease versions (e.g. `0.3.0-beta.7`), npm requires an explicit tag.
+To publish as `latest`, use:
+
+```sh
+npm publish --access public --tag latest
+```
+
+The platform-specific publish script does this automatically for prerelease
+versions.
 
 [Docker]: https://docs.docker.com/engine/install/
 [Swig]: https://github.com/swig/swig

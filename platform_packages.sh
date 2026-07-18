@@ -210,7 +210,13 @@ _publish_package() {
     echo "publishing package for $platform ($target)"
 
     pushd "$platform_dir"
-    npm publish --access public
+    local is_prerelease
+    is_prerelease="$(node -pe "require('./package.json').version.includes('-')")"
+    if [ "$is_prerelease" = "true" ]; then
+        npm publish --access public --tag latest
+    else
+        npm publish --access public
+    fi
     popd
 }
 
