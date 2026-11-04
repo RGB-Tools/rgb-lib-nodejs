@@ -84,6 +84,27 @@ function trueTypeOfNumber(obj) {
     return "number"; // Fallback for unusual numbers
 }
 
+const integerRanges = {
+    u8: [new Big(0), u8Max],
+    u16: [new Big(0), u16Max],
+    u32: [new Big(0), u32Max],
+    u64: [new Big(0), u64Max],
+    i8: [i8Min, i8Max],
+    i16: [i16Min, i16Max],
+    i32: [i32Min, i32Max],
+    i64: [i64Min, i64Max],
+};
+
+// check whether a number string is an integer within the range of the given type
+function fitsIntegerType(obj, type) {
+    const range = integerRanges[type];
+    if (!range || obj.includes(".")) {
+        return false;
+    }
+    const num = Big(obj);
+    return num.gte(range[0]) && num.lte(range[1]);
+}
+
 function trueTypeOf(obj) {
     return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
 }
@@ -134,7 +155,11 @@ function validateTypes(values, expectedTypes) {
             if (actualType != "string") {
                 throw new Error("numbers must be passed as strings");
             }
-            actualType = trueTypeOfNumber(val);
+            // the smallest type a number fits in doesn't account for signed types
+            // also holding positive values, so check the expected range directly
+            actualType = fitsIntegerType(val, baseType)
+                ? baseType
+                : trueTypeOfNumber(val);
         }
 
         const arrayMatch = baseType.match(/^array\[(.*)\]$/);
