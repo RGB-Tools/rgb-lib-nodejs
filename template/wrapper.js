@@ -388,8 +388,8 @@ exports.Wallet = class Wallet {
         );
     }
 
-    createUtxosBegin(online, upTo, num, size, feeRate, skipSync) {
-        const params = { online, upTo, num, size, feeRate, skipSync };
+    createUtxosBegin(online, upTo, num, size, feeRate, skipSync, dryRun) {
+        const params = { online, upTo, num, size, feeRate, skipSync, dryRun };
         const expectedTypes = {
             online: "object",
             upTo: "boolean",
@@ -397,6 +397,7 @@ exports.Wallet = class Wallet {
             size: "u32?",
             feeRate: "u64",
             skipSync: "boolean",
+            dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
         return lib.rgblib_create_utxos_begin(
@@ -407,15 +408,15 @@ exports.Wallet = class Wallet {
             size,
             feeRate,
             skipSync,
+            dryRun,
         );
     }
 
-    createUtxosEnd(online, signedPsbt, skipSync) {
-        const params = { online, signedPsbt, skipSync };
+    createUtxosEnd(online, signedPsbt) {
+        const params = { online, signedPsbt };
         const expectedTypes = {
             online: "object",
             signedPsbt: "string",
-            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -423,7 +424,6 @@ exports.Wallet = class Wallet {
                 this.wallet,
                 serializeOnline(online),
                 signedPsbt,
-                skipSync,
             ),
         );
     }
@@ -788,15 +788,17 @@ exports.Wallet = class Wallet {
             dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_send_begin(
-            this.wallet,
-            serializeOnline(online),
-            JSON.stringify(recipientMap),
-            donation,
-            feeRate,
-            minConfirmations,
-            expirationTimestamp,
-            dryRun,
+        return JSON.parse(
+            lib.rgblib_send_begin(
+                this.wallet,
+                serializeOnline(online),
+                JSON.stringify(recipientMap),
+                donation,
+                feeRate,
+                minConfirmations,
+                expirationTimestamp,
+                dryRun,
+            ),
         );
     }
 
