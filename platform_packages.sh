@@ -84,6 +84,21 @@ _patch_base_image_version() {
         docker/linux-image.sh
 }
 
+_build_docker_image() {
+    # GITHUB_REF_* are unset as the cross xtask derives image tags from them
+    # (failing on some refs, e.g. tags) even if --tag is passed.
+    # CROSS_IMAGE_BUILD_OPTS (e.g. for layer caching) is only passed to the
+    # image build, as CROSS_BUILD_OPTS is also used by cross for pre-build
+    if [ -n "$CROSS_IMAGE_BUILD_OPTS" ]; then
+        env -u GITHUB_REF_TYPE -u GITHUB_REF_NAME \
+            CROSS_BUILD_OPTS="$CROSS_IMAGE_BUILD_OPTS" \
+            cargo build-docker-image "$@"
+    else
+        env -u GITHUB_REF_TYPE -u GITHUB_REF_NAME \
+            cargo build-docker-image "$@"
+    fi
+}
+
 _build_cross_image() {
     local target="$1"
     local os="$2"
@@ -97,7 +112,7 @@ _build_cross_image() {
         _patch_base_image_version 1
     fi
 
-    cargo build-docker-image "$target" --tag local
+    _build_docker_image "$target" --tag local
 
     if [ -z "$KEEP" ]; then
         _reset_cross 1
@@ -123,7 +138,7 @@ _build_cross_image_darwin() {
         docker/cross-toolchains/docker/darwin-entry.sh
 
     MACOS_SDK_URL="https://github.com/joseluisq/macosx-sdks/releases/download/$OSX_VERSION/MacOSX$OSX_VERSION.sdk.tar.xz"
-    cargo build-docker-image "$target-cross" --tag local --build-arg "MACOS_SDK_URL=$MACOS_SDK_URL"
+    _build_docker_image "$target-cross" --tag local --build-arg "MACOS_SDK_URL=$MACOS_SDK_URL"
 
     if [ -z "$KEEP" ]; then
         _reset_cross 1

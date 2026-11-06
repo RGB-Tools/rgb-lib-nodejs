@@ -108,6 +108,35 @@ To format the code, install the package then, from the project root, run:
 npm run format
 ```
 
+To only check the formatting (as done in CI), run:
+
+```sh
+npm run format:check
+```
+
+## CI
+
+GitHub Actions workflows (in `.github/workflows`) run on pushes to `master`
+and on pull requests:
+
+- `lint.yml`: formatting check, `optionalDependencies` version check
+  (`node update-opt-dep-version.js --check`) and shellcheck
+- `build.yml`: builds the native packages for all supported platforms (on
+  linux, with cross), then installs each one on a runner of its platform and
+  checks the addon loads (smoke test). On linux-x64, `example.js` is run
+  against the regtest services instead. The linux packages are also smoke
+  tested in an Ubuntu 20.04 container, to check compatibility with it
+
+The cross Docker image layers are cached in the GitHub Actions cache (written
+by pushes to `master` only), via the `CROSS_IMAGE_BUILD_OPTS` variable, which
+`platform_packages.sh` passes as extra `docker buildx build` options when
+building the cross images.
+
+To access the cache, the build job exposes the GitHub Actions runtime token to
+the build steps. To avoid cache poisoning, the cache must only be written by
+trusted code: pull requests only read it and the workflow must never be
+triggered by `pull_request_target`.
+
 ## Version update
 
 To update the version of the main package use `npm version`.
