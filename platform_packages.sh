@@ -6,8 +6,8 @@ set -e
 
 PLATFORM_DIR="platforms"
 TEMPLATE_DIR="template"
-CROSS_COMMIT="2870a0c"
-CROSS_TOOLCHAIN_COMMIT="d139724"
+CROSS_COMMIT="2870a0cef9308febf8b4b75a83542d9a3d319ffe"
+CROSS_TOOLCHAIN_COMMIT="d139724ffa5d4bf5355e05eb9ada2b21cb2b9c44"
 OSX_VERSION="12.3"
 
 declare -A TARGETS
@@ -33,11 +33,20 @@ _detect_version() {
     VERSION="$(jq -r '.version' package.json)"
 }
 
+_checkout_commit() {
+    local commit="$1"
+    # fetch the commit if missing (e.g. with shallow submodules)
+    if ! git cat-file -e "$commit^{commit}" 2>/dev/null; then
+        git fetch --depth 1 origin "$commit"
+    fi
+    git reset --hard "$commit"
+}
+
 _reset_cross() {
     local clean="$1"
-    git reset --hard $CROSS_COMMIT
+    _checkout_commit $CROSS_COMMIT
     pushd docker/cross-toolchains
-    git reset --hard $CROSS_TOOLCHAIN_COMMIT
+    _checkout_commit $CROSS_TOOLCHAIN_COMMIT
     popd
     if [ -n "$clean" ]; then
         (git submodule update)
