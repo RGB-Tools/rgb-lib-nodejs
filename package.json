@@ -9,6 +9,7 @@
   "scripts": {
     "test": "echo \"No tests available\" && exit 1",
     "format": "prettier --tab-width 4 --write \"*.{js,jsx}\" \"template/*.{js,jsx}\"",
+    "format:check": "prettier --tab-width 4 --check \"*.{js,jsx}\" \"template/*.{js,jsx}\"",
     "postversion": "node update-opt-dep-version.js",
     "regtest_start": "./rgb-lib/tests/regtest.sh prepare_bindings_examples_environment",
     "regtest_stop": "./rgb-lib/tests/regtest.sh stop_services"

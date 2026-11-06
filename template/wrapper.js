@@ -84,6 +84,27 @@ function trueTypeOfNumber(obj) {
     return "number"; // Fallback for unusual numbers
 }
 
+const integerRanges = {
+    u8: [new Big(0), u8Max],
+    u16: [new Big(0), u16Max],
+    u32: [new Big(0), u32Max],
+    u64: [new Big(0), u64Max],
+    i8: [i8Min, i8Max],
+    i16: [i16Min, i16Max],
+    i32: [i32Min, i32Max],
+    i64: [i64Min, i64Max],
+};
+
+// check whether a number string is an integer within the range of the given type
+function fitsIntegerType(obj, type) {
+    const range = integerRanges[type];
+    if (!range || obj.includes(".")) {
+        return false;
+    }
+    const num = Big(obj);
+    return num.gte(range[0]) && num.lte(range[1]);
+}
+
 function trueTypeOf(obj) {
     return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
 }
@@ -134,7 +155,11 @@ function validateTypes(values, expectedTypes) {
             if (actualType != "string") {
                 throw new Error("numbers must be passed as strings");
             }
-            actualType = trueTypeOfNumber(val);
+            // the smallest type a number fits in doesn't account for signed types
+            // also holding positive values, so check the expected range directly
+            actualType = fitsIntegerType(val, baseType)
+                ? baseType
+                : trueTypeOfNumber(val);
         }
 
         const arrayMatch = baseType.match(/^array\[(.*)\]$/);
@@ -363,8 +388,8 @@ exports.Wallet = class Wallet {
         );
     }
 
-    createUtxosBegin(online, upTo, num, size, feeRate, skipSync) {
-        const params = { online, upTo, num, size, feeRate, skipSync };
+    createUtxosBegin(online, upTo, num, size, feeRate, skipSync, dryRun) {
+        const params = { online, upTo, num, size, feeRate, skipSync, dryRun };
         const expectedTypes = {
             online: "object",
             upTo: "boolean",
@@ -372,6 +397,7 @@ exports.Wallet = class Wallet {
             size: "u32?",
             feeRate: "u64",
             skipSync: "boolean",
+            dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
         return lib.rgblib_create_utxos_begin(
@@ -382,15 +408,15 @@ exports.Wallet = class Wallet {
             size,
             feeRate,
             skipSync,
+            dryRun,
         );
     }
 
-    createUtxosEnd(online, signedPsbt, skipSync) {
-        const params = { online, signedPsbt, skipSync };
+    createUtxosEnd(online, signedPsbt) {
+        const params = { online, signedPsbt };
         const expectedTypes = {
             online: "object",
             signedPsbt: "string",
-            skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
         return JSON.parse(
@@ -398,7 +424,6 @@ exports.Wallet = class Wallet {
                 this.wallet,
                 serializeOnline(online),
                 signedPsbt,
-                skipSync,
             ),
         );
     }
@@ -763,15 +788,17 @@ exports.Wallet = class Wallet {
             dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_send_begin(
-            this.wallet,
-            serializeOnline(online),
-            JSON.stringify(recipientMap),
-            donation,
-            feeRate,
-            minConfirmations,
-            expirationTimestamp,
-            dryRun,
+        return JSON.parse(
+            lib.rgblib_send_begin(
+                this.wallet,
+                serializeOnline(online),
+                JSON.stringify(recipientMap),
+                donation,
+                feeRate,
+                minConfirmations,
+                expirationTimestamp,
+                dryRun,
+            ),
         );
     }
 
