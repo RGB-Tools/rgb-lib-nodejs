@@ -54,13 +54,22 @@ _reset_cross() {
 }
 
 _patch_base_image_version() {
-    # patch base ubuntu image version
-    for f in docker/Dockerfile* docker/cross-toolchains/docker/Dockerfile.* src/docker/shared.rs; do
+    local bump_ubuntu="$1"
+    # patch base ubuntu image version, not for linux targets as the libc of the
+    # base image sets the minimum glibc version required by the library
+    if [ -n "$bump_ubuntu" ]; then
+        for f in docker/Dockerfile* docker/cross-toolchains/docker/Dockerfile.* src/docker/shared.rs; do
+            sed -i \
+                -e 's/ubuntu:20/ubuntu:22/' \
+                "$f"
+        done
+        # patch wine version for updated ubuntu
         sed -i \
-            -e 's/ubuntu:20/ubuntu:22/' \
-            "$f"
-    done
-    # patch linux-image.sh for updated ubuntu
+            -e 's/version="9.0.0.0~focal-1"/version="10.0.0.0~jammy-1"/' \
+            -e 's/focal/jammy/g' \
+            docker/wine.sh
+    fi
+    # patch linux-image.sh for updated debian kernel
     sed -i \
         -e 's/kversion=5.10.0-26/kversion=6.1.0-48/' \
         -e 's/bullseye/bookworm/' \
@@ -68,20 +77,20 @@ _patch_base_image_version() {
         -e 's/release-{7,8,9,10,11}/release-12/' \
         -e 's/archive_{2020,2021,2022,2023,2024}/archive_2025/' \
         docker/linux-image.sh
-    # patch wine version for updated ubuntu
-    sed -i \
-        -e 's/version="9.0.0.0~focal-1"/version="10.0.0.0~jammy-1"/' \
-        -e 's/focal/jammy/g' \
-        docker/wine.sh
 }
 
 _build_cross_image() {
     local target="$1"
+    local os="$2"
 
     pushd cross
 
     _reset_cross
-    _patch_base_image_version
+    if [ "$os" = "linux" ]; then
+        _patch_base_image_version
+    else
+        _patch_base_image_version 1
+    fi
 
     cargo build-docker-image "$target" --tag local
 
@@ -98,7 +107,7 @@ _build_cross_image_darwin() {
     pushd cross
 
     _reset_cross
-    _patch_base_image_version
+    _patch_base_image_version 1
 
     # patch darwin scripts
     sed -i \
@@ -138,7 +147,7 @@ _build_package() {
     case $os in
         linux)
             ext="so"
-            _build_cross_image "$target"
+            _build_cross_image "$target" "$os"
             ;;
         darwin)
             ext="dylib"
@@ -147,7 +156,7 @@ _build_package() {
         win32)
             filename="rgblibcffi"
             ext="dll"
-            _build_cross_image "$target"
+            _build_cross_image "$target" "$os"
             ;;
         *)
             _die "unsupprted OS: $os"

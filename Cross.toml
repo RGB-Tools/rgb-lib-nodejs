@@ -1,8 +1,23 @@
+# the linux images are based on ubuntu 20.04, to support its glibc (2.31), but
+# its gcc 9 has a memcmp bug (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95189)
+# which makes aws-lc-sys fail, so make gcc 10 the default compiler
 [target.x86_64-unknown-linux-gnu]
 image = "ghcr.io/cross-rs/x86_64-unknown-linux-gnu:local"
+pre-build = [
+    "apt-get update && apt-get --assume-yes install gcc-10 g++-10",
+    "ln -sf gcc-10 /usr/bin/gcc",
+    "ln -sf g++-10 /usr/bin/g++",
+    "ln -sf gcc-10 /usr/bin/x86_64-linux-gnu-gcc",
+    "ln -sf g++-10 /usr/bin/x86_64-linux-gnu-g++",
+]
 
 [target.aarch64-unknown-linux-gnu]
 image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:local"
+pre-build = [
+    "apt-get update && apt-get --assume-yes install gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu",
+    "ln -sf aarch64-linux-gnu-gcc-10 /usr/bin/aarch64-linux-gnu-gcc",
+    "ln -sf aarch64-linux-gnu-g++-10 /usr/bin/aarch64-linux-gnu-g++",
+]
 
 [target.x86_64-apple-darwin]
 image = "ghcr.io/cross-rs/x86_64-apple-darwin-cross:local"
