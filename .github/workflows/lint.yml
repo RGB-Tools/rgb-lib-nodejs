@@ -1,0 +1,40 @@
+name: Lint
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dev dependencies
+        # skip the published native packages, only prettier is needed here
+        run: npm install --omit=optional --ignore-scripts --no-audit --no-fund
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Check optionalDependencies versions
+        run: node update-opt-dep-version.js --check
+
+      - name: Shellcheck
+        run: shellcheck platform_packages.sh
