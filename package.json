@@ -23,6 +23,9 @@
   ],
   "author": "Zoe Faltibà <zoefaltiba@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=22 <24"
+  },
   "bugs": {
     "url": "https://github.com/RGB-Tools/rgb-lib-nodejs/issues"
   },

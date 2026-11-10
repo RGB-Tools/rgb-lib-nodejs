@@ -14,6 +14,8 @@ correct platform-specific package for the platform where it's being installed.
 
 ## Requirements
 
+- Node.js 22 or 23 (the bindings require Node.js 21+ and the native addon
+  doesn't build against the V8 of Node.js 24+)
 - Python 3
 - development tools (e.g. make, g++)
 
