@@ -43,6 +43,12 @@ let keys = rgblib.generateKeys(
 console.log(keys);
 ```
 
+All integers are `BigInt`, both when passed to the functions (including inside
+objects, e.g. the assignments) and when returned by them. The exceptions are
+the fee estimation, which is a floating-point number, and the bytes of byte
+arrays (embedded media data and proofs of reserves), which are numbers.
+`JSON.stringify` doesn't support `BigInt` without a replacer (see the example).
+
 > :warning: **Warning: memory will be leaked if not taken care of manually**
 >
 > Check the example to see how you can manually avoid memory leaks

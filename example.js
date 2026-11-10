@@ -9,6 +9,13 @@ const arch = os.arch();
 
 const rgblib = require(`@rgb-tools/rgb-lib-${platform}-${arch}`);
 
+// JSON.stringify doesn't support BigInt, used by the bindings for integers
+function toJson(value) {
+    return JSON.stringify(value, (key, val) =>
+        typeof val === "bigint" ? val.toString() : val,
+    );
+}
+
 function mine(numBlocks) {
     try {
         execSync(`./rgb-lib/tests/regtest.sh mine ${numBlocks}`);
@@ -41,14 +48,14 @@ function initWallet(vanillaKeychain) {
     let bitcoinNetwork = rgblib.BitcoinNetwork.Regtest;
     let witnessVersion = rgblib.WitnessVersion.Taproot;
     let keys = rgblib.generateKeys(bitcoinNetwork, witnessVersion);
-    console.log("Keys: " + JSON.stringify(keys));
+    console.log("Keys: " + toJson(keys));
 
     let restoredKeys = rgblib.restoreKeys(
         bitcoinNetwork,
         keys.mnemonic,
         witnessVersion,
     );
-    console.log("Restored keys: " + JSON.stringify(restoredKeys));
+    console.log("Restored keys: " + toJson(restoredKeys));
 
     let singlesigKeys = {
         accountXpubVanilla: keys.accountXpubVanilla,
@@ -61,7 +68,7 @@ function initWallet(vanillaKeychain) {
         dataDir: "./data",
         bitcoinNetwork: bitcoinNetwork,
         databaseType: rgblib.DatabaseType.Sqlite,
-        maxAllocationsPerUtxo: "1",
+        maxAllocationsPerUtxo: 1n,
         supportedSchemas: [
             rgblib.AssetSchema.Cfa,
             rgblib.AssetSchema.Nia,
@@ -76,7 +83,7 @@ function initWallet(vanillaKeychain) {
     console.log("Wallet created");
 
     let btcBalance = wallet.getBtcBalance(null, true);
-    console.log("BTC balance: " + JSON.stringify(btcBalance));
+    console.log("BTC balance: " + toJson(btcBalance));
 
     let address = wallet.getAddress();
     console.log("Address: " + address);
@@ -87,15 +94,15 @@ function initWallet(vanillaKeychain) {
     let online = wallet.goOnline({
         indexerUrl: "tcp://localhost:50001",
         skipConsistencyCheck: false,
-        vanillaSyncLookback: 20,
+        vanillaSyncLookback: 20n,
     });
     console.log("Wallet went online");
 
     btcBalance = wallet.getBtcBalance(online, false);
-    console.log("BTC balance: " + JSON.stringify(btcBalance));
+    console.log("BTC balance: " + toJson(btcBalance));
 
-    let created = wallet.createUtxos(online, false, "25", null, "1", false);
-    console.log("Created " + JSON.stringify(created) + " UTXOs");
+    let created = wallet.createUtxos(online, false, 25n, null, 1n, false);
+    console.log("Created " + toJson(created) + " UTXOs");
 
     return [wallet, online, walletData, singlesigKeys];
 }
@@ -103,58 +110,58 @@ function initWallet(vanillaKeychain) {
 function main() {
     let [wallet, online, walletData, singlesigKeys] = initWallet(null);
 
-    let asset1 = wallet.issueAssetNIA("USDT", "Tether", "2", ["777", "66"]);
-    console.log("Issued a NIA asset " + JSON.stringify(asset1));
+    let asset1 = wallet.issueAssetNIA("USDT", "Tether", 2n, [777n, 66n]);
+    console.log("Issued a NIA asset " + toJson(asset1));
 
-    let asset2 = wallet.issueAssetCFA("Cfa", "desc", "2", ["777"], null);
-    console.log("Issued a CFA asset: " + JSON.stringify(asset2));
+    let asset2 = wallet.issueAssetCFA("Cfa", "desc", 2n, [777n], null);
+    console.log("Issued a CFA asset: " + toJson(asset2));
 
     let asset3 = wallet.issueAssetUDA(
         "TKN",
         "Token",
         null,
-        "2",
+        2n,
         "README.md",
         [],
     );
-    console.log("Issued a UDA asset: " + JSON.stringify(asset3));
+    console.log("Issued a UDA asset: " + toJson(asset3));
 
     let assets1 = wallet.listAssets([
         rgblib.AssetSchema.Nia,
         rgblib.AssetSchema.Cfa,
     ]);
-    console.log("Assets: " + JSON.stringify(assets1));
+    console.log("Assets: " + toJson(assets1));
 
     let assets2 = wallet.listAssets([]);
-    console.log("Assets: " + JSON.stringify(assets2));
+    console.log("Assets: " + toJson(assets2));
 
-    let [rcvWallet, rcvOnline, _rcvWalletData] = initWallet("3");
+    let [rcvWallet, rcvOnline, _rcvWalletData] = initWallet(3n);
 
-    const expirationTimestamp = Math.floor(Date.now() / 1000) + 60;
+    const expirationTimestamp = BigInt(Math.floor(Date.now() / 1000) + 60);
     let receiveData1 = rcvWallet.blindReceive(
         null,
-        '{"Fungible":100}',
-        expirationTimestamp.toString(),
+        { Fungible: 100n },
+        expirationTimestamp,
         [PROXY_URL],
-        "1",
+        1n,
     );
-    console.log("Receive data: " + JSON.stringify(receiveData1));
+    console.log("Receive data: " + toJson(receiveData1));
 
     let receiveData2 = rcvWallet.witnessReceive(
         null,
-        '{"Fungible":50}',
-        expirationTimestamp.toString(),
+        { Fungible: 50n },
+        expirationTimestamp,
         [PROXY_URL],
-        "1",
+        1n,
     );
-    console.log("Receive data: " + JSON.stringify(receiveData2));
+    console.log("Receive data: " + toJson(receiveData2));
 
     let recipientMap = {
         [asset1.assetId]: [
             {
                 recipientId: receiveData1.recipientId,
                 witnessData: null,
-                assignment: { Fungible: 100 },
+                assignment: { Fungible: 100n },
                 transportEndpoints: [PROXY_URL],
             },
         ],
@@ -162,10 +169,10 @@ function main() {
             {
                 recipientId: receiveData2.recipientId,
                 witnessData: {
-                    amountSat: "1500",
+                    amountSat: 1500n,
                     blinding: null,
                 },
-                assignment: { Fungible: 50 },
+                assignment: { Fungible: 50n },
                 transportEndpoints: [PROXY_URL],
             },
         ],
@@ -175,11 +182,11 @@ function main() {
         online,
         recipientMap,
         false,
-        "2",
-        "1",
-        expirationTimestamp.toString(),
+        2n,
+        1n,
+        expirationTimestamp,
     );
-    console.log("Sent: " + JSON.stringify(sendResult));
+    console.log("Sent: " + toJson(sendResult));
 
     rcvWallet.refresh(rcvOnline, null, [], false);
     wallet.refresh(online, null, [], false);
@@ -190,10 +197,10 @@ function main() {
     wallet.refresh(online, null, [], false);
 
     let rcvAssets = rcvWallet.listAssets([]);
-    console.log("Assets: " + JSON.stringify(rcvAssets));
+    console.log("Assets: " + toJson(rcvAssets));
 
     let rcvAssetBalance = rcvWallet.getAssetBalance(asset1.assetId);
-    console.log("Asset balance: " + JSON.stringify(rcvAssetBalance));
+    console.log("Asset balance: " + toJson(rcvAssetBalance));
 
     wallet.sync(online, {
         keychain: rgblib.SyncKeychain.Colored,
@@ -201,33 +208,27 @@ function main() {
     });
 
     wallet.sync(online, {
-        keychain: { Vanilla: { lookback: 20 } },
+        keychain: { Vanilla: { lookback: 20n } },
         strategy: rgblib.SyncStrategy.FastSync,
     });
 
     let transfers = wallet.listTransfers(asset1.assetId);
-    console.log("Transfers: " + JSON.stringify(transfers));
+    console.log("Transfers: " + toJson(transfers));
 
     let transactions = wallet.listTransactions(online, true);
-    console.log("Transactions: " + JSON.stringify(transactions));
+    console.log("Transactions: " + toJson(transactions));
 
     let unspents = rcvWallet.listUnspents(rcvOnline, false, false);
-    console.log("Unspents: " + JSON.stringify(unspents));
+    console.log("Unspents: " + toJson(unspents));
 
     try {
-        let feeEstimation = wallet.getFeeEstimation(online, "7");
-        console.log("Fee estimation: " + JSON.stringify(feeEstimation));
+        let feeEstimation = wallet.getFeeEstimation(online, 7n);
+        console.log("Fee estimation: " + toJson(feeEstimation));
     } catch (e) {
         console.log("Error getting fee estimation: " + e);
     }
 
-    let txid = wallet.sendBtc(
-        online,
-        rcvWallet.getAddress(),
-        "700",
-        "3",
-        false,
-    );
+    let txid = wallet.sendBtc(online, rcvWallet.getAddress(), 700n, 3n, false);
     console.log("Sent BTC, txid: " + txid);
 
     // backup
@@ -258,10 +259,10 @@ function main() {
     online = wallet.goOnline({
         indexerUrl: "tcp://localhost:50001",
         skipConsistencyCheck: false,
-        vanillaSyncLookback: 20,
+        vanillaSyncLookback: 20n,
     });
     assets2 = wallet.listAssets([]);
-    console.log("Assets: " + JSON.stringify(assets2));
+    console.log("Assets: " + toJson(assets2));
 
     // these avoid memory leaks, unnecessary here since the program exits
     console.log("Dropping wallets...");

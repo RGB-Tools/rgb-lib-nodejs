@@ -1,108 +1,30 @@
-const Big = require("big.js");
 const lib = require("./rgblib");
 
-const u8Max = new Big(255);
-const u16Max = new Big(65535);
-const u32Max = new Big(4294967295);
-const u64Max = new Big(Number.MAX_SAFE_INTEGER);
-
-const i8Min = new Big(-128);
-const i8Max = new Big(127);
-const i16Min = new Big(-32768);
-const i16Max = new Big(32767);
-const i32Min = new Big(-2147483648);
-const i32Max = new Big(2147483647);
-const i64Min = new Big(Number.MIN_SAFE_INTEGER);
-const i64Max = new Big(Number.MAX_SAFE_INTEGER);
-
-const f32Min = new Big("1.17549435e-38");
-const f32Max = new Big("3.4028235e38");
-
-function isNumberType(type) {
-    const numberTypes = [
-        "u8",
-        "u16",
-        "u32",
-        "u64",
-        "i8",
-        "i16",
-        "i32",
-        "i64",
-        "f32",
-        "f64",
-    ];
-    return numberTypes.includes(type);
-}
-
-function isTypeSubset(actualType, expectedType) {
-    const typeHierarchy = {
-        u8: ["u8", "u16", "u32", "u64"],
-        u16: ["u16", "u32", "u64"],
-        u32: ["u32", "u64"],
-        u64: ["u64"],
-        i8: ["i8", "i16", "i32", "i64"],
-        i16: ["i16", "i32", "i64"],
-        i32: ["i32", "i64"],
-        i64: ["i64"],
-        f32: ["f32", "f64"],
-        f64: ["f64"],
-        string: ["string"],
-        boolean: ["boolean"],
-        array: ["array"],
-        object: ["object"],
-    };
-    return (
-        typeHierarchy[actualType] &&
-        typeHierarchy[actualType].includes(expectedType)
-    );
-}
-
-function trueTypeOfNumber(obj) {
-    let isInteger = true;
-    if (obj.includes(".")) {
-        isInteger = false;
-    }
-    let num = Big(obj);
-
-    if (isInteger) {
-        // Unsigned integers
-        if (num.gte(0) && num.lte(u8Max)) return "u8";
-        if (num.gte(0) && num.lte(u16Max)) return "u16";
-        if (num.gte(0) && num.lte(u32Max)) return "u32";
-        if (num.gte(0) && num.lte(u64Max)) return "u64";
-
-        // Signed integers
-        if (num.gte(i8Min) && num.lte(i8Max)) return "i8";
-        if (num.gte(i16Min) && num.lte(i16Max)) return "i16";
-        if (num.gte(i32Min) && num.lte(i32Max)) return "i32";
-        if (num.gte(i64Min) && num.lte(i64Max)) return "i64";
-    } else {
-        // Floating-point numbers
-        if (num.abs().gte(f32Min) && num.abs().lte(f32Max)) return "f32";
-        if (num.abs().lte(Number.MAX_VALUE)) return "f64";
-    }
-    return "number"; // Fallback for unusual numbers
-}
-
+// integers are BigInt, both as arguments and in the results
 const integerRanges = {
-    u8: [new Big(0), u8Max],
-    u16: [new Big(0), u16Max],
-    u32: [new Big(0), u32Max],
-    u64: [new Big(0), u64Max],
-    i8: [i8Min, i8Max],
-    i16: [i16Min, i16Max],
-    i32: [i32Min, i32Max],
-    i64: [i64Min, i64Max],
+    u8: [0n, 255n],
+    u16: [0n, 65535n],
+    u32: [0n, 4294967295n],
+    u64: [0n, 18446744073709551615n],
+    i8: [-128n, 127n],
+    i16: [-32768n, 32767n],
+    i32: [-2147483648n, 2147483647n],
+    i64: [-9223372036854775808n, 9223372036854775807n],
 };
 
-// check whether a number string is an integer within the range of the given type
-function fitsIntegerType(obj, type) {
-    const range = integerRanges[type];
-    if (!range || obj.includes(".")) {
-        return false;
+function isIntegerType(type) {
+    return type in integerRanges;
+}
+
+function fitsIntegerType(value, type) {
+    const [min, max] = integerRanges[type];
+    return typeof value === "bigint" && value >= min && value <= max;
+}
+
+function checkInteger(value, type, name) {
+    if (!fitsIntegerType(value, type)) {
+        throw new Error(`${name} must be a BigInt in the ${type} range`);
     }
-    const num = Big(obj);
-    return num.gte(range[0]) && num.lte(range[1]);
 }
 
 function trueTypeOf(obj) {
@@ -111,8 +33,16 @@ function trueTypeOf(obj) {
 
 function validateArrayElements(array, expectedElementType) {
     array.forEach((item, index) => {
+        if (isIntegerType(expectedElementType)) {
+            checkInteger(
+                item,
+                expectedElementType,
+                `Array element at index ${index}`,
+            );
+            return;
+        }
         const actualType = trueTypeOf(item);
-        if (!isTypeSubset(actualType, expectedElementType)) {
+        if (actualType !== expectedElementType) {
             throw new Error(
                 `Array element at index ${index} must be of type ${expectedElementType}, but got ${actualType}`,
             );
@@ -147,19 +77,20 @@ function validateTypes(values, expectedTypes) {
         }
         const type = expectedTypes[key];
         const isOptional = type.endsWith("?");
-        let val = values[key];
-        let actualType = trueTypeOf(val);
+        const val = values[key];
+        const actualType = trueTypeOf(val);
         const baseType = isOptional ? type.slice(0, -1) : type;
 
-        if (val !== null && isNumberType(baseType)) {
-            if (actualType != "string") {
-                throw new Error("numbers must be passed as strings");
+        if (isIntegerType(baseType)) {
+            if (
+                !(isOptional && val === null) &&
+                !fitsIntegerType(val, baseType)
+            ) {
+                throw new Error(
+                    `${key} must be a BigInt in the ${baseType} range${isOptional ? " or null" : ""}`,
+                );
             }
-            // the smallest type a number fits in doesn't account for signed types
-            // also holding positive values, so check the expected range directly
-            actualType = fitsIntegerType(val, baseType)
-                ? baseType
-                : trueTypeOfNumber(val);
+            return;
         }
 
         const arrayMatch = baseType.match(/^array\[(.*)\]$/);
@@ -169,10 +100,7 @@ function validateTypes(values, expectedTypes) {
             }
             const elementType = arrayMatch[1];
             validateArrayElements(val, elementType);
-        } else if (
-            !isTypeSubset(actualType, baseType) &&
-            !(isOptional && val === null)
-        ) {
+        } else if (actualType !== baseType && !(isOptional && val === null)) {
             throw new Error(
                 `${key} type must be ${baseType}${isOptional ? " or null" : ""}`,
             );
@@ -180,21 +108,109 @@ function validateTypes(values, expectedTypes) {
     });
 }
 
-// Online.id is a u64 (nanosecond timestamp) and exceeds JS Number.MAX_SAFE_INTEGER.
+// an assignment is either the name of a variant without value or an object with
+// a single variant holding a u64 value
+function validateAssignment(assignment, name) {
+    if (typeof assignment === "string") {
+        if (!["NonFungible", "Any"].includes(assignment)) {
+            throw new Error(`${name} must be NonFungible or Any if a string`);
+        }
+        return;
+    }
+    if (trueTypeOf(assignment) !== "object") {
+        throw new Error(`${name} must be a string or an object`);
+    }
+    const variants = Object.keys(assignment);
+    if (
+        variants.length !== 1 ||
+        !["Fungible", "InflationRight"].includes(variants[0])
+    ) {
+        throw new Error(
+            `${name} must have a single Fungible or InflationRight key`,
+        );
+    }
+    checkInteger(assignment[variants[0]], "u64", `${name}.${variants[0]}`);
+}
+
+// check the assignments and the integers of the recipients
+function validateRecipientMap(recipientMap) {
+    Object.entries(recipientMap).forEach(([assetId, recipients]) => {
+        if (!Array.isArray(recipients)) {
+            throw new Error(`recipientMap.${assetId} must be an array`);
+        }
+        recipients.forEach((recipient, index) => {
+            const name = `recipientMap.${assetId}[${index}]`;
+            if (trueTypeOf(recipient) !== "object") {
+                throw new Error(`${name} must be an object`);
+            }
+            validateAssignment(recipient.assignment, `${name}.assignment`);
+            const witnessData = recipient.witnessData;
+            if (witnessData === null || witnessData === undefined) {
+                return;
+            }
+            checkInteger(
+                witnessData.amountSat,
+                "u64",
+                `${name}.witnessData.amountSat`,
+            );
+            const blinding = witnessData.blinding;
+            if (blinding !== null && blinding !== undefined) {
+                checkInteger(blinding, "u64", `${name}.witnessData.blinding`);
+            }
+        });
+    });
+}
+
+// whether a value of a result is a byte array: the data of an embedded media
+// or the proof of a proof of reserves
+function isByteArray(key, value, holder) {
+    return (
+        Array.isArray(value) &&
+        ((key === "data" && "mime" in holder) ||
+            (key === "proof" && "utxo" in holder))
+    );
+}
+
+// parse a JSON result, returning all the integers as BigInt, except for the
+// bytes of byte arrays, which stay numbers
+function parseJson(raw) {
+    return JSON.parse(raw, function (key, value, context) {
+        if (typeof value === "number" && /^-?\d+$/.test(context.source)) {
+            return BigInt(context.source);
+        }
+        if (isByteArray(key, value, this)) {
+            return value.map(Number);
+        }
+        return value;
+    });
+}
+
+// serialize to JSON, writing BigInt values as numbers
+function stringifyJson(value) {
+    return JSON.stringify(value, (key, val) =>
+        typeof val === "bigint" ? JSON.rawJSON(val.toString()) : val,
+    );
+}
+
+// integers are passed to the C++ library as strings
+function serializeInteger(value) {
+    return value === null || value === undefined ? null : value.toString();
+}
+
 function parseOnline(raw) {
-    const idMatch = raw.match(/"id"\s*:\s*(\d+)/);
-    if (!idMatch) {
+    const online = parseJson(raw);
+    if (typeof online?.id !== "bigint") {
         throw new Error("Invalid online object");
     }
-    return { id: idMatch[1] };
+    return { id: online.id };
 }
 
 function serializeOnline(online) {
     if (online === null || online === undefined) {
         return null;
     }
-    const id = typeof online.id === "string" ? online.id : String(online.id);
-    return `{"id":${id}}`;
+    checkInteger(online.id, "u64", "online.id");
+    return `{"id":${online.id}}`;
 }
 
 exports.AssetSchema = AssetSchema = {
@@ -239,12 +255,12 @@ exports.generateKeys = function generateKeys(bitcoinNetwork, witnessVersion) {
             witnessVersion: WitnessVersion,
         },
     );
-    return JSON.parse(lib.rgblib_generate_keys(bitcoinNetwork, witnessVersion));
+    return parseJson(lib.rgblib_generate_keys(bitcoinNetwork, witnessVersion));
 };
 
 exports.invoiceData = function invoiceData(invoiceString) {
     validateTypes({ invoiceString }, { invoiceString: "string" });
-    return JSON.parse(lib.rgblib_invoice_data(invoiceString));
+    return parseJson(lib.rgblib_invoice_data(invoiceString));
 };
 
 exports.restoreBackup = function (backupPath, password, targetDir) {
@@ -267,7 +283,7 @@ exports.restoreKeys = function (bitcoinNetwork, mnemonic, witnessVersion) {
         },
     );
     validateTypes({ mnemonic }, { mnemonic: "string" });
-    return JSON.parse(
+    return parseJson(
         lib.rgblib_restore_keys(bitcoinNetwork, mnemonic, witnessVersion),
     );
 };
@@ -308,8 +324,8 @@ exports.WalletData = class WalletData {
 exports.Wallet = class Wallet {
     constructor(walletData, singlesigKeys) {
         this.wallet = lib.rgblib_new_wallet(
-            JSON.stringify(walletData),
-            JSON.stringify(singlesigKeys),
+            stringifyJson(walletData),
+            stringifyJson(singlesigKeys),
         );
     }
 
@@ -329,7 +345,7 @@ exports.Wallet = class Wallet {
     }
 
     backupInfo() {
-        return JSON.parse(lib.rgblib_backup_info(this.wallet));
+        return parseJson(lib.rgblib_backup_info(this.wallet));
     }
 
     blindReceive(
@@ -348,20 +364,20 @@ exports.Wallet = class Wallet {
         };
         const expectedTypes = {
             assetId: "string?",
-            assignment: "string",
             expirationTimestamp: "u64",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        validateAssignment(assignment, "assignment");
+        return parseJson(
             lib.rgblib_blind_receive(
                 this.wallet,
                 assetId,
-                assignment,
-                expirationTimestamp,
-                JSON.stringify(transportEndpoints),
-                minConfirmations,
+                stringifyJson(assignment),
+                serializeInteger(expirationTimestamp),
+                stringifyJson(transportEndpoints),
+                serializeInteger(minConfirmations),
             ),
         );
     }
@@ -377,14 +393,16 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_create_utxos(
-            this.wallet,
-            serializeOnline(online),
-            upTo,
-            num,
-            size,
-            feeRate,
-            skipSync,
+        return parseJson(
+            lib.rgblib_create_utxos(
+                this.wallet,
+                serializeOnline(online),
+                upTo,
+                serializeInteger(num),
+                serializeInteger(size),
+                serializeInteger(feeRate),
+                skipSync,
+            ),
         );
     }
 
@@ -404,9 +422,9 @@ exports.Wallet = class Wallet {
             this.wallet,
             serializeOnline(online),
             upTo,
-            num,
-            size,
-            feeRate,
+            serializeInteger(num),
+            serializeInteger(size),
+            serializeInteger(feeRate),
             skipSync,
             dryRun,
         );
@@ -419,7 +437,7 @@ exports.Wallet = class Wallet {
             signedPsbt: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_create_utxos_end(
                 this.wallet,
                 serializeOnline(online),
@@ -438,10 +456,10 @@ exports.Wallet = class Wallet {
             noAssetOnly: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_delete_transfers(
                 this.wallet,
-                batchTransferIdx,
+                serializeInteger(batchTransferIdx),
                 noAssetOnly,
             ),
         );
@@ -461,11 +479,11 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_fail_transfers(
                 this.wallet,
                 serializeOnline(online),
-                batchTransferIdx,
+                serializeInteger(batchTransferIdx),
                 noAssetOnly,
                 skipSync,
             ),
@@ -482,7 +500,7 @@ exports.Wallet = class Wallet {
             assetId: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_get_asset_balance(this.wallet, assetId));
+        return parseJson(lib.rgblib_get_asset_balance(this.wallet, assetId));
     }
 
     getAssetMetadata(assetId) {
@@ -491,7 +509,7 @@ exports.Wallet = class Wallet {
             assetId: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_get_asset_metadata(this.wallet, assetId));
+        return parseJson(lib.rgblib_get_asset_metadata(this.wallet, assetId));
     }
 
     getBtcBalance(online, skipSync) {
@@ -501,7 +519,7 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_get_btc_balance(
                 this.wallet,
                 serializeOnline(online),
@@ -517,10 +535,12 @@ exports.Wallet = class Wallet {
             blocks: "u16",
         };
         validateTypes(params, expectedTypes);
-        return lib.rgblib_get_fee_estimation(
-            this.wallet,
-            serializeOnline(online),
-            blocks,
+        return parseJson(
+            lib.rgblib_get_fee_estimation(
+                this.wallet,
+                serializeOnline(online),
+                serializeInteger(blocks),
+            ),
         );
     }
 
@@ -533,9 +553,10 @@ exports.Wallet = class Wallet {
         validateTypes(onlineOptions, {
             indexerUrl: "string",
             skipConsistencyCheck: "boolean",
+            vanillaSyncLookback: "u32",
         });
         return parseOnline(
-            lib.rgblib_go_online(this.wallet, JSON.stringify(onlineOptions)),
+            lib.rgblib_go_online(this.wallet, stringifyJson(onlineOptions)),
         );
     }
 
@@ -551,17 +572,17 @@ exports.Wallet = class Wallet {
             name: "string",
             details: "string?",
             precision: "u8",
-            amounts: "array[string]",
+            amounts: "array[u64]",
             filePath: "string?",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_issue_asset_cfa(
                 this.wallet,
                 name,
                 details,
-                precision,
-                JSON.stringify(amounts),
+                serializeInteger(precision),
+                stringifyJson(amounts.map(serializeInteger)),
                 filePath,
             ),
         );
@@ -577,16 +598,16 @@ exports.Wallet = class Wallet {
         const expectedTypes = {
             name: "string",
             precision: "u8",
-            amounts: "array[string]",
+            amounts: "array[u64]",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_issue_asset_nia(
                 this.wallet,
                 ticker,
                 name,
-                precision,
-                JSON.stringify(amounts),
+                serializeInteger(precision),
+                stringifyJson(amounts.map(serializeInteger)),
             ),
         );
     }
@@ -616,15 +637,15 @@ exports.Wallet = class Wallet {
             attachmentsFilePaths: "array[string]",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_issue_asset_uda(
                 this.wallet,
                 ticker,
                 name,
                 details,
-                precision,
+                serializeInteger(precision),
                 mediaFilePath,
-                JSON.stringify(attachmentsFilePaths),
+                stringifyJson(attachmentsFilePaths),
             ),
         );
     }
@@ -640,10 +661,10 @@ exports.Wallet = class Wallet {
         validateEnumValues(params, {
             filterAssetSchemas: AssetSchema,
         });
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_list_assets(
                 this.wallet,
-                JSON.stringify(filterAssetSchemas),
+                stringifyJson(filterAssetSchemas),
             ),
         );
     }
@@ -655,7 +676,7 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_list_transactions(
                 this.wallet,
                 serializeOnline(online),
@@ -672,7 +693,7 @@ exports.Wallet = class Wallet {
             assetId: "string?",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(lib.rgblib_list_transfers(this.wallet, assetId));
+        return parseJson(lib.rgblib_list_transfers(this.wallet, assetId));
     }
 
     listUnspents(online, settledOnly, skipSync) {
@@ -687,7 +708,7 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_list_unspents(
                 this.wallet,
                 serializeOnline(online),
@@ -711,12 +732,12 @@ exports.Wallet = class Wallet {
             skipSync: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_refresh(
                 this.wallet,
                 serializeOnline(online),
                 assetId,
-                JSON.stringify(filter),
+                stringifyJson(filter),
                 skipSync,
             ),
         );
@@ -747,15 +768,16 @@ exports.Wallet = class Wallet {
             expirationTimestamp: "u64",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        validateRecipientMap(recipientMap);
+        return parseJson(
             lib.rgblib_send(
                 this.wallet,
                 serializeOnline(online),
-                JSON.stringify(recipientMap),
+                stringifyJson(recipientMap),
                 donation,
-                feeRate,
-                minConfirmations,
-                expirationTimestamp,
+                serializeInteger(feeRate),
+                serializeInteger(minConfirmations),
+                serializeInteger(expirationTimestamp),
             ),
         );
     }
@@ -788,15 +810,16 @@ exports.Wallet = class Wallet {
             dryRun: "boolean",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        validateRecipientMap(recipientMap);
+        return parseJson(
             lib.rgblib_send_begin(
                 this.wallet,
                 serializeOnline(online),
-                JSON.stringify(recipientMap),
+                stringifyJson(recipientMap),
                 donation,
-                feeRate,
-                minConfirmations,
-                expirationTimestamp,
+                serializeInteger(feeRate),
+                serializeInteger(minConfirmations),
+                serializeInteger(expirationTimestamp),
                 dryRun,
             ),
         );
@@ -822,8 +845,8 @@ exports.Wallet = class Wallet {
             this.wallet,
             serializeOnline(online),
             address,
-            amount,
-            feeRate,
+            serializeInteger(amount),
+            serializeInteger(feeRate),
             skipSync,
         );
     }
@@ -838,7 +861,7 @@ exports.Wallet = class Wallet {
             signedPsbt: "string",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        return parseJson(
             lib.rgblib_send_end(
                 this.wallet,
                 serializeOnline(online),
@@ -866,10 +889,14 @@ exports.Wallet = class Wallet {
         validateEnumValues(options, {
             strategy: SyncStrategy,
         });
+        if (trueTypeOf(options.keychain) === "object") {
+            validateTypes(options.keychain, { Vanilla: "object" });
+            validateTypes(options.keychain.Vanilla, { lookback: "u32" });
+        }
         lib.rgblib_sync(
             this.wallet,
             serializeOnline(online),
-            JSON.stringify(options),
+            stringifyJson(options),
         );
     }
 
@@ -889,20 +916,20 @@ exports.Wallet = class Wallet {
         };
         const expectedTypes = {
             assetId: "string?",
-            assignment: "string",
             expirationTimestamp: "u64",
             transportEndpoints: "array[string]",
             minConfirmations: "u8",
         };
         validateTypes(params, expectedTypes);
-        return JSON.parse(
+        validateAssignment(assignment, "assignment");
+        return parseJson(
             lib.rgblib_witness_receive(
                 this.wallet,
                 assetId,
-                assignment,
-                expirationTimestamp,
-                JSON.stringify(transportEndpoints),
-                minConfirmations,
+                stringifyJson(assignment),
+                serializeInteger(expirationTimestamp),
+                stringifyJson(transportEndpoints),
+                serializeInteger(minConfirmations),
             ),
         );
     }
